@@ -17,7 +17,7 @@ import { Lead } from '../types';
 import { downloadLeadsCSV } from '../utils/csvExport';
 
 interface LandingPageProps {
-  onEnterApp: (view?: 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns') => void;
+  onEnterApp: (view?: 'auth' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns') => void;
   sampleLeads: Lead[];
 }
 
@@ -49,7 +49,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
         <div className="landing-actions">
           <button className="text-link desktop-only" onClick={() => onEnterApp('dashboard')}>Log in</button>
           <button className="black-button nav-cta" onClick={() => onEnterApp('dashboard')}>Get started <ArrowRight size={14} /></button>
-          <button className="icon-button mobile-only" onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={isMenuOpen} aria-controls="landing-navigation">{isMenuOpen ? <span aria-hidden="true">×</span> : <Menu size={19} />}</button>
+          <button className="icon-button mobile-only" style={{ backgroundColor: '#0F1C2E', color: '#FFFFFF' }} onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={isMenuOpen} aria-controls="landing-navigation">{isMenuOpen ? <span aria-hidden="true">×</span> : <Menu size={19} />}</button>
         </div>
         <nav id="landing-navigation" className={`landing-mobile-menu${isMenuOpen ? ' is-open' : ''}`} aria-label="Mobile navigation">
           <a href="#workflow" onClick={() => setIsMenuOpen(false)}>Workflow <ArrowRight size={14} /></a>
@@ -64,7 +64,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
             <h1>Turn CRM actions into <em>automated flows.</em></h1>
             <p className="hero-lede">Find better prospects, understand what matters, and move every conversation forward with one beautifully direct sales engine.</p>
             <div className="hero-buttons">
-              <button className="black-button large-button" onClick={() => onEnterApp('dashboard')}>Start building <ArrowRight size={17} /></button>
+              <button className="black-button large-button" onClick={() => onEnterApp()}>Start building <ArrowRight size={17} /></button>
               <button className="outline-button large-button" onClick={() => onEnterApp('automation')}><Play size={14} fill="currentColor" /> See the workflow</button>
             </div>
             <div className="hero-note"><span className="note-check"><Check size={11} /></span> No credit card required <span className="note-separator" /> Built for teams that move fast</div>

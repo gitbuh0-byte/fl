@@ -9,6 +9,7 @@ import { CampaignsManager } from './components/CampaignsManager';
 import { LeadDetailModal } from './components/LeadDetailModal';
 import { CreateLeadModal } from './components/CreateLeadModal';
 import { ProfilePage } from './components/ProfilePage';
+import { AuthPage } from './components/AuthPage';
 import { 
   initialLeads, 
   initialCampaigns, 
@@ -19,11 +20,11 @@ import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
-  type AppView = 'landing' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns';
+  type AppView = 'landing' | 'auth' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns';
   const [dashboardInstance, setDashboardInstance] = useState(0);
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const savedView = sessionStorage.getItem('omnibiz-current-view');
-    return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns'
+    return savedView === 'auth' || savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns'
       ? savedView
       : 'landing';
   });
@@ -234,7 +235,7 @@ export function App() {
   return (
     <div className={`min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white ${currentView === 'landing' ? '' : 'dashboard-shell'}`}>
       {/* Bento Header & Telemetry Bar (Shown when inside the app) */}
-      {currentView !== 'landing' && (
+      {currentView !== 'landing' && currentView !== 'auth' && (
         <Header
           currentView={currentView}
           onNavigate={handleNavigate}
@@ -252,9 +253,11 @@ export function App() {
       {/* Main Bento Canvas Area */}
       {currentView === 'landing' ? (
         <LandingPage
-          onEnterApp={(targetView) => setCurrentView(targetView || 'dashboard')}
+          onEnterApp={(targetView) => setCurrentView(targetView || 'auth')}
           sampleLeads={leads}
         />
+      ) : currentView === 'auth' ? (
+        <AuthPage onBack={() => setCurrentView('landing')} onContinue={() => setCurrentView('dashboard')} />
       ) : (
         isProfileOpen ? (
           <ProfilePage onClose={() => setIsProfileOpen(false)} />
