@@ -173,7 +173,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 1050px) { .workspace-header-inner { gap: 12px; padding: 0 16px; }.workspace-nav button { padding-left: 8px; padding-right: 8px; }.workspace-search { width: 120px; }.workspace-add span, .workspace-scrape span { display: none; }.workspace-add, .workspace-scrape { padding: 0; width: 34px; } }
 @media (max-width: 700px) { .workspace-header-inner { flex-wrap: wrap; gap: 0 12px; padding-top: 12px; }.workspace-brand { margin-right: auto; }.workspace-actions { margin-left: auto; }.workspace-search { display: none; }.workspace-nav { flex-basis: 100%; order: 3; }.workspace-nav button { padding-bottom: 12px; padding-top: 14px; } }
 
-.workspace-menu-toggle { align-items: center; background: #f5f3ee; border: 1px solid #dedbd3; color: #181818; cursor: pointer; display: none; height: 34px; justify-content: center; width: 34px; }
+.workspace-menu-toggle { align-items: center; background: #0F1C2E !important; background-image: none !important; border: 2px solid #0F1C2E !important; box-shadow: 0 3px 0 #8db8df; color: #fff !important; cursor: pointer; display: none; height: 40px; justify-content: center; width: 40px; }
 .dashboard-shell > .workspace-header { border-top-color: #1688e8 !important; }
 .dashboard-shell .workspace-mark { background: #1688e8; }
 .dashboard-shell .workspace-nav button.active { border-bottom-color: #1688e8; }
@@ -257,7 +257,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .landing-brand .brand-mark { flex: 0 0 29px; }
   .landing-actions { flex: 0 0 auto; gap: 7px; margin-left: auto; }
   .landing-actions .nav-cta { display: none; }
-  .icon-button.mobile-only { background: #0F1C2E; border: 1px solid #0F1C2E; color: #fff; display: inline-flex; flex: 0 0 38px; height: 38px; position: relative; width: 38px; z-index: 22; }
+  .icon-button.mobile-only { background: #0F1C2E !important; background-image: none !important; border: 2px solid #0F1C2E !important; box-shadow: 0 3px 0 #8db8df; color: #fff !important; display: inline-flex; flex: 0 0 40px; height: 40px; position: relative; width: 40px; z-index: 22; }
   .icon-button.mobile-only:hover { background: #263b56; }
   .landing-mobile-menu { background: #fff; border: 1px solid #0F1C2E; box-shadow: 0 14px 28px rgba(15, 28, 46, .22); flex-direction: column; left: 12px; padding: 8px 16px; position: absolute; right: 12px; top: calc(100% + 8px); z-index: 21; }
   .landing-mobile-menu.is-open { display: flex; }
