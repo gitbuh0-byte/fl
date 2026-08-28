@@ -3,7 +3,6 @@ import {
   ArrowDownRight,
   ArrowRight,
   Check,
-  Download,
   Globe2,
   Layers3,
   Mail,
@@ -14,7 +13,6 @@ import {
   Target,
 } from 'lucide-react';
 import { Lead } from '../types';
-import { downloadLeadsCSV } from '../utils/csvExport';
 
 interface LandingPageProps {
   onEnterApp: (view?: 'auth' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns') => void;
@@ -30,10 +28,6 @@ const workflowSteps = [
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLeads }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleDownloadSampleCSV = () => {
-    downloadLeadsCSV(sampleLeads, `omnibiz_sample_export_${new Date().toISOString().split('T')[0]}.csv`);
-  };
-
   return (
     <div className="landing-page">
       <header className="landing-nav">
@@ -47,8 +41,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
           <a href="#proof">Why OmniBiz</a>
         </nav>
         <div className="landing-actions">
-          <button className="text-link desktop-only" onClick={() => onEnterApp('dashboard')}>Log in</button>
-          <button className="black-button nav-cta" onClick={() => onEnterApp('dashboard')}>Get started <ArrowRight size={14} /></button>
+          <button className="text-link desktop-only" onClick={() => onEnterApp()}>Log in</button>
+          <button className="black-button nav-cta" onClick={() => onEnterApp()}>Get started <ArrowRight size={14} /></button>
           <button className="icon-button mobile-only" style={{ backgroundColor: '#0F1C2E', color: '#FFFFFF' }} onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={isMenuOpen} aria-controls="landing-navigation">{isMenuOpen ? <span aria-hidden="true">×</span> : <Menu size={19} />}</button>
         </div>
         <nav id="landing-navigation" className={`landing-mobile-menu${isMenuOpen ? ' is-open' : ''}`} aria-label="Mobile navigation">
@@ -65,9 +59,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
             <p className="hero-lede">Find better prospects, understand what matters, and move every conversation forward with one beautifully direct sales engine.</p>
             <div className="hero-buttons">
               <button className="black-button large-button" onClick={() => onEnterApp()}>Start building <ArrowRight size={17} /></button>
-              <button className="outline-button large-button" onClick={() => onEnterApp('automation')}><Play size={14} fill="currentColor" /> See the workflow</button>
+              <button className="outline-button large-button" onClick={() => onEnterApp()}><Play size={14} fill="currentColor" /> See the workflow</button>
             </div>
-            <div className="hero-note"><span className="note-check"><Check size={11} /></span> No credit card required <span className="note-separator" /> Built for teams that move fast</div>
           </div>
           <div className="hero-art" aria-label="OmniBiz workflow preview">
             <div className="orbit orbit-left" />
@@ -100,21 +93,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
         </section>
 
         <section className="story-section story-workflow" id="workflow">
-          <div className="section-intro"><span className="section-kicker">Why OmniBiz</span><h2>Workflow<br /><em>automation</em> that matters.</h2><p>Keep every action close to the signal that started it. Less tab switching, more good conversations.</p><button className="text-arrow" onClick={() => onEnterApp('dashboard')}>Explore the workbench <ArrowRight size={15} /></button></div>
+          <div className="section-intro"><span className="section-kicker">Why OmniBiz</span><h2>Workflow<br /><em>automation</em> that matters.</h2><p>Keep every action close to the signal that started it. Less tab switching, more good conversations.</p><button className="text-arrow" onClick={() => onEnterApp()}>Explore the workbench <ArrowRight size={15} /></button></div>
           <div className="workflow-steps">{workflowSteps.map((step) => <div className="workflow-step" key={step.number}><span>{step.number}</span><div><h3>{step.title}</h3><p>{step.text}</p></div></div>)}</div>
           <div className="big-loop loop-one" /><div className="big-loop loop-two" />
         </section>
 
         <section className="feature-section" id="capabilities">
-          <div className="feature-copy"><span className="section-kicker">The signal layer</span><h2>Know what to do<br />before you <em>do it.</em></h2><p>OmniBiz turns scattered data into a clear point of view. Search, enrich, and prioritize from one calm command center.</p><div className="feature-list"><span><Check size={14} /> Verified local and social data</span><span><Check size={14} /> AI fit scores and custom pitches</span><span><Check size={14} /> Email, dialer, and campaign actions</span></div><button className="black-button" onClick={() => onEnterApp('scraper')}>Find your next lead <ArrowRight size={15} /></button></div>
+          <div className="feature-copy"><span className="section-kicker">The signal layer</span><h2>Know what to do<br />before you <em>do it.</em></h2><p>OmniBiz turns scattered data into a clear point of view. Search, enrich, and prioritize from one calm command center.</p><div className="feature-list"><span><Check size={14} /> Verified local and social data</span><span><Check size={14} /> AI fit scores and custom pitches</span><span><Check size={14} /> Email, dialer, and campaign actions</span></div><button className="black-button" onClick={() => onEnterApp()}>Find your next lead <ArrowRight size={15} /></button></div>
           <div className="feature-visual"><div className="visual-grid" /><div className="metric-card metric-top"><small>Lead fit score</small><strong>94<span>/100</span></strong><div className="score-line"><i /></div></div><div className="metric-card metric-bottom"><div className="metric-title"><span className="avatar orange-avatar">JR</span><span><b>Juniper & Row</b><small>New opportunity</small></span><span className="metric-plus"><Plus size={15} /></span></div><div className="metric-tags"><span>High intent</span><span>Website visitor</span></div></div><div className="feature-spark">✦</div></div>
         </section>
 
-        <section className="number-section"><div className="number-copy"><span className="section-kicker light-kicker">Momentum, measured</span><h2>125,412<span>+</span></h2><p>automated workflows executed</p><button className="cream-button" onClick={() => onEnterApp('automation')}>Build your first flow <ArrowRight size={15} /></button></div><div className="number-chart"><div className="chart-bars"><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><div className="chart-line" /></div></section>
+        <section className="number-section"><div className="number-copy"><span className="section-kicker light-kicker">Momentum, measured</span><h2>125,412<span>+</span></h2><p>automated workflows executed</p><button className="cream-button" onClick={() => onEnterApp()}>Build your first flow <ArrowRight size={15} /></button></div><div className="number-chart"><div className="chart-bars"><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><div className="chart-line" /></div></section>
 
-        <section className="closing-section"><div><span className="section-kicker">The next move is yours</span><h2>From planning to<br /><em>completion,</em> we’ve got it.</h2><p>OmniBiz gives your team the structure to start strong and the flexibility to keep moving.</p><button className="black-button large-button" onClick={() => onEnterApp('dashboard')}>Get started <ArrowRight size={17} /></button></div><div className="closing-mark"><ArrowDownRight size={58} strokeWidth={1.3} /></div></section>
+        <section className="closing-section"><div><span className="section-kicker">The next move is yours</span><h2>From planning to<br /><em>completion,</em> we’ve got it.</h2><p>OmniBiz gives your team the structure to start strong and the flexibility to keep moving.</p><button className="black-button large-button" onClick={() => onEnterApp()}>Get started <ArrowRight size={17} /></button></div><div className="closing-mark"><ArrowDownRight size={58} strokeWidth={1.3} /></div></section>
   </main>
-  <footer className="landing-footer"><div className="footer-brand"><span className="brand-mark">O</span><span>OmniBiz</span><small>Workflows in motion.</small></div><div className="footer-links"><div><b>Explore</b><button onClick={() => onEnterApp('dashboard')}>Workbench</button><button onClick={() => onEnterApp('scraper')}>Lead finder</button><button onClick={() => onEnterApp('automation')}>Automation</button></div><div><b>Company</b><a href="#proof">Why OmniBiz</a><a href="#workflow">Workflow</a><button onClick={handleDownloadSampleCSV}><Download size={13} /> Sample CSV</button></div></div><div className="footer-bottom"><span>© 2026 OmniBiz</span><span>Made for teams that follow through.</span><span className="footer-symbol">↗</span></div></footer>
+  <footer className="landing-footer"><div className="footer-brand"><span className="brand-mark">O</span><span>OmniBiz</span><small>Workflows in motion.</small></div><div className="footer-links"><div><b>Explore</b><button onClick={() => onEnterApp()}>Workbench</button><button onClick={() => onEnterApp()}>Lead finder</button><button onClick={() => onEnterApp()}>Automation</button></div><div><b>Company</b><a href="#proof">Why OmniBiz</a><a href="#workflow">Workflow</a></div></div><div className="footer-bottom"><span>© 2026 OmniBiz</span><span>Made for teams that follow through.</span><span className="footer-symbol">↗</span></div></footer>
   </div>
   );
 };
