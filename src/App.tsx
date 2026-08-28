@@ -34,6 +34,7 @@ export function App() {
   }, [currentView]);
 
   const handleNavigate = (view: AppView) => {
+    setIsProfileOpen(false);
     if (view === 'dashboard' && currentView === 'dashboard') {
       setDashboardInstance((instance) => instance + 1);
     }
