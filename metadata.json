@@ -1,0 +1,7 @@
+{
+  "name": "OmniLead CRM & AI Prospecting Engine",
+  "description": "Multi-channel lead scraper from Google Maps, social media, and ad campaigns with automated email/call follow-ups, sales pipeline Kanban, and real-time analytics.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
