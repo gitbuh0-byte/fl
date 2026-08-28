@@ -95,7 +95,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .dashboard-shell table tbody tr:hover { background: #fff4ed !important; }
 .dashboard-shell [class*="rounded-2xl"], .dashboard-shell [class*="rounded-xl"] { border-radius: 2px !important; }
 .dashboard-shell [class*="shadow-xl"], .dashboard-shell [class*="shadow-lg"] { box-shadow: 0 10px 28px rgba(31, 28, 21, .06) !important; }
-.dashboard-shell .dashboard-main [class*="shadow-xl"] { box-shadow: 10px 12px 0 #ffe100 !important; }
 .dashboard-shell [class*="bg-[#0a0a0a]"], .dashboard-shell [class*="bg-[#080808]"], .dashboard-shell [class*="bg-[#050505]"] { background: #f5f4f0 !important; }
 .dashboard-shell [class*="text-gray-700"], .dashboard-shell [class*="text-gray-800"] { color: #3f3c36 !important; }
 .dashboard-shell [class*="border-[#242424]"], .dashboard-shell [class*="border-[#262626]"], .dashboard-shell [class*="border-[#2a2a2a]"] { border-color: #dedbd3 !important; }
