@@ -497,8 +497,8 @@ export const INITIAL_EMAIL_CADENCES: EmailCadence[] = [
       {
         stepNumber: 1,
         delayDays: 0,
-        subject: 'Your requested OmniLead pipeline breakdown + demo access',
-        bodyTemplate: `Hi {{name}},\n\nThank you for requesting access through our {{sourceChannel}} campaign!\n\nI've prepared a customized pipeline report for {{company}}. You can grab a dedicated 15-minute walkthrough directly on my calendar here: https://cal.com/omnilead/discovery\n\nLooking forward to speaking soon,\nDavid Miller`,
+        subject: 'Your requested OmniBiz pipeline breakdown + demo access',
+        bodyTemplate: `Hi {{name}},\n\nThank you for requesting access through our {{sourceChannel}} campaign!\n\nI've prepared a customized pipeline report for {{company}}. You can grab a dedicated 15-minute walkthrough directly on my calendar here: https://cal.com/omnibiz/discovery\n\nLooking forward to speaking soon,\nDavid Miller`,
       },
       {
         stepNumber: 2,

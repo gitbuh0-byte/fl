@@ -315,7 +315,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
       leadScore: item.confidenceScore || 90,
       intentLevel: 'High',
       tags: ['Batch Scraped', item.category || 'High-Intent', 'Multi-Channel Verified'],
-      notes: `Batch extracted via OmniLead Scraper Engine from ${item.platform || 'Crawler'}. Verified phone and social links.`,
+      notes: `Batch extracted via OmniBiz Scraper Engine from ${item.platform || 'Crawler'}. Verified phone and social links.`,
       assignedTo: 'Sarah Connor',
       createdAt: new Date().toISOString(),
       emailSequenceStatus: 'idle',
@@ -352,7 +352,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
         </div>
 
         {/* Scraper Channel Selector */}
-        <div className="flex items-center gap-1.5 bg-[#111] p-1.5 rounded-xl border border-[#222] self-start">
+        <div className="scraper-channel-selector flex items-center gap-1.5 bg-[#111] p-1.5 rounded-xl border border-[#222] self-start">
           <button
             id="scraper-tab-maps"
             onClick={() => setActiveScraperTab('maps')}

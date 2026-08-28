@@ -46,7 +46,7 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
   const totalPipelineRevenue = campaigns.reduce((sum, c) => sum + (c.revenue ?? (c as any).pipelineRevenue ?? 0), 0);
 
   const handleCopyWebhook = () => {
-    navigator.clipboard.writeText('https://omnilead-crm.internal/api/campaigns/webhook');
+    navigator.clipboard.writeText('https://omnibiz.internal/api/campaigns/webhook');
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
@@ -138,6 +138,29 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
           <p className="text-2xl font-bold text-white font-mono">${totalPipelineRevenue.toLocaleString()}</p>
           <span className="text-[11px] text-blue-400 font-mono">{(totalPipelineRevenue / (totalSpend || 1)).toFixed(1)}x ROAS Ratio</span>
         </div>
+      </div>
+
+      <div className="campaign-visual-summary">
+        <div>
+          <span className="campaign-visual-kicker">Channel performance</span>
+          <h2>Paid demand at a glance.</h2>
+          <p>Compare lead volume and pipeline contribution across every active source.</p>
+        </div>
+        <div className="campaign-bars">
+          {campaigns.map((campaign, index) => {
+            const leads = campaign.leadsCount || 0;
+            const share = totalLeads ? Math.max((leads / totalLeads) * 100, 8) : 8;
+            const colors = ['#0F1C2E', '#5b8bb8', '#168454', '#4f6f8f'];
+            return (
+              <div className="campaign-bar-group" key={campaign.id}>
+                <div className="campaign-bar-value">{leads}</div>
+                <div className="campaign-bar-track"><i style={{ height: `${share}%`, background: colors[index % colors.length] }} /></div>
+                <span>{campaign.platform.replace('_', ' ')}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="campaign-visual-total"><strong>{totalLeads}</strong><span>inbound leads<br />this cycle</span></div>
       </div>
 
       {/* Campaigns Table & Management Bento Card */}

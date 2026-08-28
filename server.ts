@@ -501,7 +501,7 @@ Return as JSON:
       success: true,
       email: {
         subject: `Quick question regarding ${biz}'s inbound pipeline`,
-        body: `Hi ${prospect},\n\nI came across ${biz} and was really impressed by your market presence in ${lead?.address || 'your space'}.\n\nWe recently helped similar teams streamline lead capture from Google Maps & paid ads, accelerating follow-up response times to under 2 minutes and boosting qualified bookings by 42%.\n\nDo you have 10 minutes this Thursday for a quick ideas exchange?\n\nBest regards,\nAlex Vance\nOmniLead Pipeline Team`,
+        body: `Hi ${prospect},\n\nI came across ${biz} and was really impressed by your market presence in ${lead?.address || 'your space'}.\n\nWe recently helped similar teams streamline lead capture from Google Maps & paid ads, accelerating follow-up response times to under 2 minutes and boosting qualified bookings by 42%.\n\nDo you have 10 minutes this Thursday for a quick ideas exchange?\n\nBest regards,\nAlex Vance\nOmniBiz Pipeline Team`,
       },
     });
   } catch (error: any) {
@@ -527,7 +527,7 @@ Prospect Profile:
 Conversation history so far:
 ${JSON.stringify(dialogueHistory, null, 2)}
 
-Latest message from Sales Rep/AI Agent: "${userSpeech || "Hi, this is Jordan calling from OmniLead CRM. I noticed your recent campaign and wanted to share how we've helped similar companies streamline their inbound lead conversion."}"
+Latest message from Sales Rep/AI Agent: "${userSpeech || "Hi, this is Jordan calling from OmniBiz CRM. I noticed your recent campaign and wanted to share how we've helped similar companies streamline their inbound lead conversion."}"
 
 Respond realistically as the prospect. In a phone call, keep responses concise (1-3 sentences), natural, slightly guarded but open to genuine business value.
 Include:

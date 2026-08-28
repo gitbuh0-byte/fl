@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { LandingPage } from './components/LandingPage';
-import { DashboardView } from './components/DashboardView';
+import { DashboardFresh } from './components/DashboardFresh';
 import { ScraperWorkbench } from './components/ScraperWorkbench';
 import { PipelineKanban } from './components/PipelineKanban';
 import { AutomationSequences } from './components/AutomationSequences';
 import { CampaignsManager } from './components/CampaignsManager';
 import { LeadDetailModal } from './components/LeadDetailModal';
 import { CreateLeadModal } from './components/CreateLeadModal';
+import { ProfilePage } from './components/ProfilePage';
 import { 
   initialLeads, 
   initialCampaigns, 
@@ -18,7 +19,25 @@ import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns'>('dashboard');
+  type AppView = 'landing' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns';
+  const [dashboardInstance, setDashboardInstance] = useState(0);
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    const savedView = sessionStorage.getItem('omnibiz-current-view');
+    return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns'
+      ? savedView
+      : 'landing';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('omnibiz-current-view', currentView);
+  }, [currentView]);
+
+  const handleNavigate = (view: AppView) => {
+    if (view === 'dashboard' && currentView === 'dashboard') {
+      setDashboardInstance((instance) => instance + 1);
+    }
+    setCurrentView(view);
+  };
 
   // Application Data State
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
@@ -31,6 +50,7 @@ export function App() {
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [leadModalInitialTab, setLeadModalInitialTab] = useState<'overview' | 'email' | 'call' | 'notes'>('overview');
   const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +66,7 @@ export function App() {
   };
 
   const handleDownloadAllLeads = () => {
-    downloadLeadsCSV(leads, `leadnexus_all_leads_${new Date().toISOString().split('T')[0]}.csv`);
+    downloadLeadsCSV(leads, `omnibiz_all_leads_${new Date().toISOString().split('T')[0]}.csv`);
     showToast(`Exported ${leads.length} leads to CSV successfully!`);
   };
 
@@ -212,12 +232,12 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e0e0e0] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white ${currentView === 'landing' ? '' : 'dashboard-shell'}`}>
       {/* Bento Header & Telemetry Bar (Shown when inside the app) */}
       {currentView !== 'landing' && (
         <Header
           currentView={currentView}
-          onNavigate={setCurrentView}
+          onNavigate={handleNavigate}
           leadsCount={leads.length}
           pendingFollowupsCount={tasks.filter((t) => !t.completed).length}
           onOpenNewLeadModal={() => setIsCreateLeadModalOpen(true)}
@@ -225,6 +245,7 @@ export function App() {
           onDownloadCSV={handleDownloadAllLeads}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onOpenProfile={() => setIsProfileOpen(true)}
         />
       )}
 
@@ -235,9 +256,13 @@ export function App() {
           sampleLeads={leads}
         />
       ) : (
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        isProfileOpen ? (
+          <ProfilePage onClose={() => setIsProfileOpen(false)} />
+        ) : (
+        <main className="dashboard-main flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
           {currentView === 'dashboard' && (
-            <DashboardView
+            <DashboardFresh
+              key={dashboardInstance}
               leads={displayedLeads}
               campaigns={campaigns}
               emailCadences={cadences}
@@ -295,26 +320,8 @@ export function App() {
             />
           )}
         </main>
+        )
       )}
-
-      {/* Bento Grid System Footer */}
-      <footer className="px-6 sm:px-8 py-3.5 border-t border-[#222] bg-[#0a0a0a] flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 uppercase font-mono tracking-widest gap-2">
-        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-          <span className="text-blue-400 font-bold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            System Status: Optimal
-          </span>
-          <span className="text-[#333]">•</span>
-          <span>API Latency: 24ms</span>
-          <span className="text-[#333]">•</span>
-          <span>Engine: Google Gemini 3.7 Pro</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span>Active Ingestor: {leads.length} Records</span>
-          <span className="text-[#333]">•</span>
-          <span>UTC {new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
-        </div>
-      </footer>
 
       {/* Lead Detail & AI Outreach Drawer Modal */}
       <LeadDetailModal

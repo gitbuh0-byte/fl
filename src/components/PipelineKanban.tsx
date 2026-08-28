@@ -181,7 +181,7 @@ export const PipelineKanban: React.FC<PipelineKanbanProps> = ({
 
           <button
             id="kanban-download-csv-btn"
-            onClick={() => downloadLeadsCSV(filteredLeads, `leadnexus_kanban_export_${new Date().toISOString().split('T')[0]}.csv`)}
+            onClick={() => downloadLeadsCSV(filteredLeads, `omnibiz_kanban_export_${new Date().toISOString().split('T')[0]}.csv`)}
             className="flex items-center gap-1.5 bg-[#181818] hover:bg-[#222] text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono shadow-sm"
             title="Download CSV of current pipeline leads"
           >

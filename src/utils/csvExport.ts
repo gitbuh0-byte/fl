@@ -103,7 +103,7 @@ export function downloadLeadsCSV(leads: Lead[], customFilename?: string): { succ
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   
   const today = new Date().toISOString().split('T')[0];
-  const filename = customFilename || `omnilead_export_${today}_${leads.length}_leads.csv`;
+  const filename = customFilename || `omnibiz_export_${today}_${leads.length}_leads.csv`;
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

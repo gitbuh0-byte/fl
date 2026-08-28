@@ -50,7 +50,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
       leadScore: 85,
       intentLevel: 'Medium',
       tags: ['Manual Entry', 'Direct Prospect'],
-      notes: notes || 'Directly added to OmniLead CRM.',
+      notes: notes || 'Directly added to OmniBiz CRM.',
       assignedTo: 'Sarah Connor',
       createdAt: new Date().toISOString(),
       emailSequenceStatus: 'idle',
