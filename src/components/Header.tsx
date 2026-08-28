@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="workspace-mark">O</span>
           <span>OmniBiz</span>
         </button>
-        <button className="workspace-menu-toggle" onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close workspace menu' : 'Open workspace menu'} aria-expanded={isMenuOpen}>{isMenuOpen ? <X size={18} /> : <Menu size={18} />}</button>
+        <button className="workspace-menu-toggle" style={{ backgroundColor: '#0F1C2E', borderColor: '#0F1C2E', color: '#FFFFFF' }} onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close workspace menu' : 'Open workspace menu'} aria-expanded={isMenuOpen}>{isMenuOpen ? <X size={18} /> : <Menu size={18} />}</button>
         <nav className={`workspace-nav${isMenuOpen ? ' is-open' : ''}`} aria-label="Workspace navigation">
           <button className={currentView === 'landing' ? 'active' : ''} onClick={() => { onNavigate('landing'); setIsMenuOpen(false); }}><Home size={15} /><span>Home</span></button>
           {navItems.map((item) => <button key={item.id} className={currentView === item.id ? 'active' : ''} onClick={() => { onNavigate(item.id); setIsMenuOpen(false); }}>{item.icon}<span>{item.label}</span>{item.badge && <b className="workspace-live">{item.badge}</b>}{item.count !== undefined && <b className="workspace-count">{item.count}</b>}</button>)}
