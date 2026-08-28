@@ -121,6 +121,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .dashboard-shell > .workspace-header .workspace-nav button:hover { color: #181818 !important; }
 .dashboard-shell > .workspace-header .workspace-nav.is-open { background: #fff !important; border-top: 1px solid #dedbd3 !important; box-shadow: 0 14px 28px rgba(15, 28, 46, .18); }
 .dashboard-shell > .workspace-header .workspace-nav button:hover, .dashboard-shell > .workspace-header .workspace-nav button:hover svg { background: #332e29 !important; color: #fff !important; }
+.dashboard-shell > .workspace-header .workspace-nav button.active span, .dashboard-shell > .workspace-header .workspace-nav button.active b, .dashboard-shell > .workspace-header .workspace-nav button.active svg, .dashboard-shell > .workspace-header .workspace-nav button:hover span, .dashboard-shell > .workspace-header .workspace-nav button:hover b, .dashboard-shell > .workspace-header .workspace-nav button:hover svg { color: #fff !important; }
 .dashboard-shell > header nav button { color: #cbc5bc !important; }
 .dashboard-shell > header nav button:hover { background: #332e29 !important; color: #fff !important; }
 .dashboard-shell > header nav button[class*="bg-blue-600"] { background: #ff4a17 !important; color: #fff !important; }
