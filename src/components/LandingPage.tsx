@@ -7,7 +7,6 @@ import {
   Layers3,
   Mail,
   Menu,
-  Play,
   Plus,
   Sparkles,
   Target,
@@ -59,7 +58,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
             <p className="hero-lede">Find better prospects, understand what matters, and move every conversation forward with one beautifully direct sales engine.</p>
             <div className="hero-buttons">
               <button className="black-button large-button" onClick={() => onEnterApp()}>Start building <ArrowRight size={17} /></button>
-              <button className="outline-button large-button" onClick={() => onEnterApp('automation')}><Play size={14} fill="currentColor" /> See the workflow</button>
             </div>
           </div>
           <div className="hero-art" aria-label="OmniBiz workflow preview">

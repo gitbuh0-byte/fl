@@ -39,6 +39,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .landing-hero .outline-button { border-color: rgba(255,255,255,.65); color: #fff; }
 .landing-page .black-button, .landing-page .cream-button { color: #fff; }
 .landing-page .black-button svg, .landing-page .cream-button svg { color: #fff; }
+.landing-page .number-section { color: #fff !important; }
+.landing-page .number-section .cream-button, .landing-page .number-section .cream-button svg { color: #181818 !important; }
 .landing-hero .black-button { color: #0F1C2E; }
 .landing-hero .black-button svg { color: #0F1C2E; }
 
