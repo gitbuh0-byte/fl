@@ -55,7 +55,7 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="automation-page space-y-4 pb-12">
       {/* Header & Subtabs Bento Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#222] pb-4">
         <div>

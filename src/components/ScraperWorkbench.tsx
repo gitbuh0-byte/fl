@@ -758,7 +758,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
 
       {/* Progress & Live Console Output */}
       {isLoading && (
-        <div className="bg-[#0e0e0e] rounded-2xl p-5 border border-[#222] shadow-md space-y-3 font-mono">
+        <div className="scraper-status-panel bg-[#0e0e0e] rounded-2xl p-5 border border-[#222] shadow-md space-y-3 font-mono">
           <div className="flex items-center justify-between text-xs">
             <span className="text-blue-400 font-bold flex items-center gap-2">
               <RefreshCw className="w-4 h-4 animate-spin" />
