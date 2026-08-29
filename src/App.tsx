@@ -48,8 +48,9 @@ export function App() {
   const [cadences, setCadences] = useState(initialCadences);
   const [tasks, setTasks] = useState<FollowUpTask[]>(initialFollowUpTasks);
   const [isStateHydrated, setIsStateHydrated] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('omnibiz-auth-token')));
   const [profile, setProfile] = useState<ProfileSettings>({ name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } });
+  const hasStoredSession = Boolean(localStorage.getItem('omnibiz-auth-token'));
 
   // Modal / Drawer Selection State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -72,10 +73,20 @@ export function App() {
   };
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('omnibiz-auth-token');
+    if (storedToken) {
+      setIsAuthenticated(true);
+      if (currentView === 'landing' || currentView === 'auth') {
+        setCurrentView('dashboard');
+      }
+      return;
+    }
+
     getSession()
       .then((user) => {
         if (user) {
           setIsAuthenticated(true);
+          setCurrentView('dashboard');
         } else if (currentView !== 'landing') {
           setCurrentView('auth');
         }
@@ -127,12 +138,14 @@ export function App() {
   const handleLogin = async (email: string) => {
     await createSession(email);
     setIsAuthenticated(true);
+    localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'session');
     setCurrentView('dashboard');
   };
 
   const handleGoogleLogin = async () => {
     await signInWithGoogle();
     setIsAuthenticated(true);
+    localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'google-session');
     setCurrentView('dashboard');
   };
 
@@ -305,7 +318,7 @@ export function App() {
           onEnterApp={(targetView) => setCurrentView(targetView || 'auth')}
           sampleLeads={leads}
         />
-      ) : currentView === 'auth' || !isAuthenticated ? (
+      ) : currentView === 'auth' || (!isAuthenticated && !hasStoredSession) ? (
         <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onGoogleLogin={handleGoogleLogin} />
       ) : (
         isProfileOpen ? (
