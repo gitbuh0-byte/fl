@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInAnonymously, signInWithPopup, signOut } from 'firebase/auth';
+import { getRedirectResult, signInAnonymously, signInWithRedirect, signOut } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
 import { initialCampaigns, initialCadences, initialFollowUpTasks, initialLeads } from '../data/initialData';
 import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
@@ -76,7 +76,14 @@ export async function createSession(email: string): Promise<AuthUser> {
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
-  const result = await signInWithPopup(auth, googleProvider);
+  await signInWithRedirect(auth, googleProvider);
+  return { email: '', name: 'Google User' };
+}
+
+export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
+  const result = await getRedirectResult(auth);
+  if (!result?.user) return null;
+
   const user = result.user;
   const resolvedEmail = (user.email ?? `${user.uid}@google.local`).toLowerCase();
   const resolvedName = user.displayName ?? resolvedEmail.split('@')[0];

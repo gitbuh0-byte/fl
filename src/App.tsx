@@ -17,7 +17,7 @@ import {
   initialFollowUpTasks 
 } from './data/initialData';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
+import { completeGoogleRedirectSignIn, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -82,7 +82,16 @@ export function App() {
       return;
     }
 
-    getSession()
+    completeGoogleRedirectSignIn()
+      .then((user) => {
+        if (user) {
+          setIsAuthenticated(true);
+          setCurrentView('dashboard');
+          return;
+        }
+
+        return getSession();
+      })
       .then((user) => {
         if (user) {
           setIsAuthenticated(true);
