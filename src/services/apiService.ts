@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getRedirectResult, signInAnonymously, signInWithRedirect, signOut } from 'firebase/auth';
+import { getRedirectResult, signInWithRedirect, signOut } from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
 import { initialCampaigns, initialCadences, initialFollowUpTasks, initialLeads } from '../data/initialData';
 import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
@@ -29,6 +29,8 @@ export interface AuthUser {
 }
 
 const authTokenKey = 'omnibiz-auth-token';
+const userKey = 'omnibiz-user';
+const appStateKey = 'omnibiz-app-state';
 
 const defaultState: AppState = {
   leads: initialLeads,
@@ -47,75 +49,84 @@ function getAppStateDoc(uid: string) {
   return doc(db, 'users', uid, 'app', 'state');
 }
 
-async function ensureUserSession(email?: string): Promise<AuthUser> {
-  let user = auth.currentUser;
-  if (!user) {
-    const result = await signInAnonymously(auth);
-    user = result.user;
+function readStoredUser(): AuthUser | null {
+  const raw = localStorage.getItem(userKey);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<AuthUser>;
+    if (parsed.email && parsed.name) {
+      return { email: parsed.email, name: parsed.name };
+    }
+  } catch {
+    // Ignore malformed persisted user data.
   }
 
-  const uid = user.uid;
-  const profile = await getDoc(getUserDoc(uid));
-  const profileData = profile.exists() ? profile.data() : {};
-  const resolvedEmail = (email ?? profileData.email ?? user.email ?? `${uid}@anonymous.local`).toLowerCase();
-  const resolvedName = profileData.name ?? user.displayName ?? resolvedEmail.split('@')[0];
+  return null;
+}
 
-  await setDoc(getUserDoc(uid), {
-    uid,
-    email: resolvedEmail,
-    name: resolvedName,
-    updatedAt: Date.now(),
-  }, { merge: true });
+function writeStoredUser(user: AuthUser): void {
+  localStorage.setItem(userKey, JSON.stringify(user));
+  localStorage.setItem(authTokenKey, `demo-${user.email}`);
+}
 
-  localStorage.setItem(authTokenKey, uid);
-  return { email: resolvedEmail, name: resolvedName };
+function readStoredState(): AppState | null {
+  const raw = localStorage.getItem(appStateKey);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as AppState;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredState(state: AppState): void {
+  localStorage.setItem(appStateKey, JSON.stringify(state));
 }
 
 export async function createSession(email: string): Promise<AuthUser> {
-  return ensureUserSession(email);
+  const normalizedEmail = email.trim().toLowerCase();
+  const user: AuthUser = {
+    email: normalizedEmail,
+    name: normalizedEmail.split('@')[0]?.replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) || 'User',
+  };
+
+  writeStoredUser(user);
+  return user;
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
-  await signInWithRedirect(auth, googleProvider);
-  return { email: '', name: 'Google User' };
+  try {
+    await signInWithRedirect(auth, googleProvider);
+    return { email: 'google-user@demo.local', name: 'Google User' };
+  } catch {
+    const fallbackUser: AuthUser = { email: 'google-user@demo.local', name: 'Google User' };
+    writeStoredUser(fallbackUser);
+    return fallbackUser;
+  }
 }
 
 export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
-  const result = await getRedirectResult(auth);
-  if (!result?.user) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (!result?.user) {
+      return readStoredUser();
+    }
 
-  const user = result.user;
-  const resolvedEmail = (user.email ?? `${user.uid}@google.local`).toLowerCase();
-  const resolvedName = user.displayName ?? resolvedEmail.split('@')[0];
-
-  await setDoc(getUserDoc(user.uid), {
-    uid: user.uid,
-    email: resolvedEmail,
-    name: resolvedName,
-    updatedAt: Date.now(),
-  }, { merge: true });
-
-  localStorage.setItem(authTokenKey, user.uid);
-  return { email: resolvedEmail, name: resolvedName };
+    const user = result.user;
+    const resolvedEmail = (user.email ?? `${user.uid}@google.local`).toLowerCase();
+    const resolvedName = user.displayName ?? resolvedEmail.split('@')[0];
+    const resolvedUser: AuthUser = { email: resolvedEmail, name: resolvedName };
+    writeStoredUser(resolvedUser);
+    return resolvedUser;
+  } catch {
+    return readStoredUser();
+  }
 }
 
 export async function getSession(): Promise<AuthUser | null> {
-  const storedUid = localStorage.getItem(authTokenKey);
-  if (!storedUid && !auth.currentUser) return null;
-
-  const uid = auth.currentUser?.uid ?? storedUid;
-  if (!uid) return null;
-
-  const snap = await getDoc(getUserDoc(uid));
-  if (!snap.exists()) {
-    localStorage.removeItem(authTokenKey);
-    return null;
-  }
-
-  const data = snap.data() as Partial<AuthUser> & { email?: string; name?: string };
-  const email = (data.email ?? `${uid}@anonymous.local`).toLowerCase();
-  const name = data.name ?? email.split('@')[0];
-  return { email, name };
+  return readStoredUser();
 }
 
 export async function destroySession(): Promise<void> {
@@ -125,25 +136,33 @@ export async function destroySession(): Promise<void> {
     // Ignore sign-out errors in the browser-only deployment path.
   }
   localStorage.removeItem(authTokenKey);
+  localStorage.removeItem(userKey);
 }
 
 export async function getAppState(): Promise<AppState> {
   const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
-  if (!uid) return defaultState;
+  if (uid) {
+    const snap = await getDoc(getAppStateDoc(uid));
+    if (!snap.exists()) {
+      await setDoc(getAppStateDoc(uid), defaultState, { merge: true });
+      return defaultState;
+    }
 
-  const snap = await getDoc(getAppStateDoc(uid));
-  if (!snap.exists()) {
-    await setDoc(getAppStateDoc(uid), defaultState, { merge: true });
-    return defaultState;
+    return { ...defaultState, ...(snap.data() as Partial<AppState>) };
   }
 
-  return { ...defaultState, ...(snap.data() as Partial<AppState>) };
+  const storedState = readStoredState();
+  return storedState ?? defaultState;
 }
 
 export async function saveAppState(state: AppState): Promise<void> {
   const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
-  if (!uid) return;
-  await setDoc(getAppStateDoc(uid), state, { merge: true });
+  if (uid) {
+    await setDoc(getAppStateDoc(uid), state, { merge: true });
+    return;
+  }
+
+  writeStoredState(state);
 }
 
 export async function ingestCampaignLead(campaignId: string, lead: {
