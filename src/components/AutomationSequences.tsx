@@ -23,6 +23,9 @@ interface AutomationSequencesProps {
   followUpTasks: FollowUpTask[];
   leads: Lead[];
   onCompleteTask: (taskId: string) => void;
+  onCreateTask: (task: FollowUpTask) => void;
+  onRescheduleTask: (taskId: string, dueDate: string) => void;
+  onDeleteTask: (taskId: string) => void;
   onSelectLeadById: (leadId: string) => void;
   onLaunchDialerForLead: (lead: Lead) => void;
 }
@@ -32,6 +35,9 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
   followUpTasks,
   leads,
   onCompleteTask,
+  onCreateTask,
+  onRescheduleTask,
+  onDeleteTask,
   onSelectLeadById,
   onLaunchDialerForLead,
 }) => {
@@ -40,9 +46,37 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
   const [testLeadName, setTestLeadName] = useState('Dr. Marcus Vance');
   const [testLeadCompany, setTestLeadCompany] = useState('Apex Dental Care');
   const [testLeadCity, setTestLeadCity] = useState('Austin');
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [taskLeadId, setTaskLeadId] = useState(leads[0]?.id || '');
+  const [taskType, setTaskType] = useState<FollowUpTask['type']>('call');
+  const [taskDueDate, setTaskDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [taskPriority, setTaskPriority] = useState<FollowUpTask['priority']>('high');
+  const [taskNotes, setTaskNotes] = useState('');
 
   const pendingTasks = followUpTasks.filter(t => !t.completed);
   const completedTasks = followUpTasks.filter(t => t.completed);
+
+  const handleCreateTask = (event: React.FormEvent) => {
+    event.preventDefault();
+    const lead = leads.find((item) => item.id === taskLeadId);
+    if (!lead) return;
+
+    onCreateTask({
+      id: `task_${Date.now()}`,
+      leadId: lead.id,
+      leadName: lead.contactPerson || 'Decision Maker',
+      leadCompany: lead.name,
+      leadPhone: lead.phone,
+      leadEmail: lead.email,
+      type: taskType,
+      dueDate: taskDueDate,
+      priority: taskPriority,
+      completed: false,
+      notes: taskNotes || `${taskType[0].toUpperCase()}${taskType.slice(1)} follow-up for ${lead.name}.`,
+    });
+    setTaskNotes('');
+    setIsTaskFormOpen(false);
+  };
 
   // Replace variable chips in template
   const renderSamplePreview = (template: string) => {
@@ -275,6 +309,12 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
               <span className="text-xs font-mono text-blue-400 bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-900/50">
                 {pendingTasks.length} Pending Tasks
               </span>
+              <button
+                onClick={() => setIsTaskFormOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Task
+              </button>
             </div>
 
             <div className="space-y-3">
@@ -320,6 +360,18 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
                       <Check className="w-3.5 h-3.5" />
                       <span>Complete</span>
                     </button>
+                    <button
+                      onClick={() => onRescheduleTask(task.id, new Date(Date.now() + 86400000).toISOString().split('T')[0])}
+                      className="px-3 py-1.5 rounded-lg bg-[#222] hover:bg-[#333] text-gray-200 text-xs font-semibold border border-[#333] cursor-pointer"
+                    >
+                      Tomorrow
+                    </button>
+                    <button
+                      onClick={() => onDeleteTask(task.id)}
+                      className="px-3 py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 text-xs font-semibold border border-rose-900/50 cursor-pointer"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -333,6 +385,25 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {isTaskFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <form onSubmit={handleCreateTask} className="bg-[#111] border border-[#222] w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#222] pb-3">
+              <h3 className="text-base font-bold text-white font-mono uppercase tracking-wider">Create Follow-Up Task</h3>
+              <button type="button" onClick={() => setIsTaskFormOpen(false)} className="text-gray-400 hover:text-white cursor-pointer">Close</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+              <label className="text-gray-300">Lead<select value={taskLeadId} onChange={(event) => setTaskLeadId(event.target.value)} className="mt-1 w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white"><option value="">Select a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name}</option>)}</select></label>
+              <label className="text-gray-300">Task type<select value={taskType} onChange={(event) => setTaskType(event.target.value as FollowUpTask['type'])} className="mt-1 w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white"><option value="call">Call</option><option value="email">Email</option><option value="meeting">Meeting</option><option value="review">Review</option><option value="proposal">Proposal</option></select></label>
+              <label className="text-gray-300">Due date<input type="date" value={taskDueDate} onChange={(event) => setTaskDueDate(event.target.value)} className="mt-1 w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white" required /></label>
+              <label className="text-gray-300">Priority<select value={taskPriority} onChange={(event) => setTaskPriority(event.target.value as FollowUpTask['priority'])} className="mt-1 w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white"><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option></select></label>
+            </div>
+            <label className="block text-xs font-mono text-gray-300">Notes<textarea value={taskNotes} onChange={(event) => setTaskNotes(event.target.value)} className="mt-1 w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white" rows={3} placeholder="What should happen next?" /></label>
+            <button type="submit" disabled={!taskLeadId} className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-2 text-xs font-bold cursor-pointer">Create task</button>
+          </form>
         </div>
       )}
     </div>

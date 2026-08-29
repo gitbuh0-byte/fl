@@ -17,6 +17,7 @@ import {
   initialFollowUpTasks 
 } from './data/initialData';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
+import { createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -24,7 +25,7 @@ export function App() {
   const [dashboardInstance, setDashboardInstance] = useState(0);
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const savedView = sessionStorage.getItem('omnibiz-current-view');
-    return savedView === 'auth' || savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns'
+    return localStorage.getItem('omnibiz-auth-token') && (savedView === 'auth' || savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns')
       ? savedView
       : 'landing';
   });
@@ -44,8 +45,11 @@ export function App() {
   // Application Data State
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
-  const [cadences] = useState(initialCadences);
+  const [cadences, setCadences] = useState(initialCadences);
   const [tasks, setTasks] = useState<FollowUpTask[]>(initialFollowUpTasks);
+  const [isStateHydrated, setIsStateHydrated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [profile, setProfile] = useState<ProfileSettings>({ name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } });
 
   // Modal / Drawer Selection State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -67,9 +71,77 @@ export function App() {
     }, 4000);
   };
 
+  useEffect(() => {
+    getSession()
+      .then((user) => {
+        if (user) {
+          setIsAuthenticated(true);
+        } else if (currentView !== 'landing') {
+          setCurrentView('auth');
+        }
+      })
+      .catch(() => setCurrentView('auth'));
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    getAppState()
+      .then((savedState) => {
+        setLeads(savedState.leads);
+        setCampaigns(savedState.campaigns);
+        setCadences(savedState.cadences);
+        setTasks(savedState.tasks);
+        if (savedState.profile) {
+          setProfile((currentProfile) => ({
+            ...currentProfile,
+            ...savedState.profile,
+            notifications: {
+              ...currentProfile.notifications,
+              ...savedState.profile?.notifications,
+            },
+          }));
+        }
+      })
+      .catch((error) => {
+        console.error('App state load error:', error);
+        showToast('Could not load saved CRM data. Using local seed data.');
+      })
+      .finally(() => setIsStateHydrated(true));
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isStateHydrated) return;
+
+    saveAppState({ leads, campaigns, cadences, tasks, profile }).catch((error) => {
+      console.error('App state save error:', error);
+      showToast('Could not save the latest CRM changes.');
+    });
+  }, [leads, campaigns, cadences, tasks, profile, isStateHydrated]);
+
   const handleDownloadAllLeads = () => {
     downloadLeadsCSV(leads, `omnibiz_all_leads_${new Date().toISOString().split('T')[0]}.csv`);
     showToast(`Exported ${leads.length} leads to CSV successfully!`);
+  };
+
+  const handleLogin = async (email: string) => {
+    await createSession(email);
+    setIsAuthenticated(true);
+    setCurrentView('dashboard');
+  };
+
+  const handleLogout = async () => {
+    await destroySession();
+    setIsAuthenticated(false);
+    setIsStateHydrated(false);
+    setIsProfileOpen(false);
+    setIsLeadModalOpen(false);
+    setCurrentView('landing');
+  };
+
+  const handleSaveProfile = (nextProfile: ProfileSettings) => {
+    setProfile(nextProfile);
+    showToast('Profile changes saved.');
   };
 
   // Filtered Leads according to search query
@@ -152,6 +224,21 @@ export function App() {
     showToast('Task marked as completed!');
   };
 
+  const handleCreateTask = (task: FollowUpTask) => {
+    setTasks((prev) => [task, ...prev]);
+    showToast('Follow-up task created!');
+  };
+
+  const handleRescheduleTask = (taskId: string, dueDate: string) => {
+    setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, dueDate } : task));
+    showToast(`Task rescheduled to ${dueDate}.`);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    showToast('Follow-up task deleted.');
+  };
+
   // Campaign Operations
   const handleToggleCampaignStatus = (campId: string) => {
     setCampaigns((prev) =>
@@ -168,69 +255,23 @@ export function App() {
     showToast(`Campaign "${camp.name}" created with webhook ingestor!`);
   };
 
-  const handleSimulateWebhookLead = (camp: Campaign) => {
-    const channelMap: Record<string, any> = {
-      'Meta Ads': 'meta_ads',
-      'Google Ads': 'google_ads',
-      'LinkedIn Ads': 'linkedin_ads',
-      'TikTok Ads': 'tiktok_ads',
-    };
-    const mappedSource = channelMap[camp.platform] || 'meta_ads';
-
-    const mockLead: Lead = {
-      id: `lead_webhook_${Date.now()}`,
-      name: `${camp.platform} Inbound Prospect`,
-      contactPerson: 'Alex Rivera',
-      title: 'Practice Director',
-      email: 'alex.rivera@prospectinc.com',
-      phone: '+1 (512) 887-1920',
-      website: 'https://prospectinc.com',
-      socialHandles: {
-        linkedin: 'https://linkedin.com/company/prospect-inc',
-      },
-      sourceChannel: mappedSource,
-      sourceDetails: {
-        campaignName: camp.name,
-        utmSource: camp.utmSource,
-        utmMedium: camp.utmMedium,
-        utmCampaign: camp.utmCampaign,
-        cpl: camp.cpl || 35,
-      },
-      pipelineStage: 'new',
-      dealValue: 14500,
-      leadScore: 94,
-      intentLevel: 'High',
-      tags: ['Webhook Ingested', camp.name, 'High Priority'],
-      notes: `Instant lead form submission from ${camp.name}.`,
-      assignedTo: 'Sarah Connor',
-      createdAt: new Date().toISOString(),
-      emailSequenceStatus: 'enrolled',
-      callStatus: 'not_called',
-      activityTimeline: [
-        {
-          id: `act_${Date.now()}`,
-          type: 'ingested',
-          title: `Lead Ingested from ${camp.platform} Webhook`,
-          description: `Captured via ad campaign form "${camp.name}".`,
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    };
-
-    setLeads((prev) => [mockLead, ...prev]);
-    setCampaigns((prev) =>
-      prev.map((c) =>
-        c.id === camp.id
-          ? {
-              ...c,
-              leadsCount: (c.leadsCount || 0) + 1,
-              spend: (c.spend || 0) + (c.cpl || 35),
-              revenue: (c.revenue || 0) + 14500,
-            }
-          : c
-      )
-    );
-    showToast(`Instant Lead Captured from ${camp.name}!`);
+  const handleSimulateWebhookLead = async (camp: Campaign) => {
+    try {
+      const result = await ingestCampaignLead(camp.id, {
+        eventId: `sim_${Date.now()}`,
+        name: 'Alex Rivera',
+        company: `${camp.platform} Inbound Prospect`,
+        contactPerson: 'Alex Rivera',
+        email: `alex.rivera.${Date.now()}@prospectinc.com`,
+        phone: '+1 (512) 887-1920',
+      });
+      setLeads((prev) => [result.lead, ...prev]);
+      setCampaigns((prev) => prev.map((item) => item.id === result.campaign.id ? result.campaign : item));
+      showToast(`Instant Lead Captured from ${camp.name}!`);
+    } catch (error) {
+      console.error('Campaign webhook error:', error);
+      showToast('Could not capture the campaign lead.');
+    }
   };
 
   return (
@@ -248,6 +289,7 @@ export function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onOpenProfile={() => setIsProfileOpen(true)}
+          onLogout={() => void handleLogout()}
         />
       )}
 
@@ -257,11 +299,11 @@ export function App() {
           onEnterApp={(targetView) => setCurrentView(targetView || 'auth')}
           sampleLeads={leads}
         />
-      ) : currentView === 'auth' ? (
-        <AuthPage onBack={() => setCurrentView('landing')} onContinue={() => setCurrentView('dashboard')} />
+      ) : currentView === 'auth' || !isAuthenticated ? (
+        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} />
       ) : (
         isProfileOpen ? (
-          <ProfilePage onClose={() => setIsProfileOpen(false)} />
+          <ProfilePage profile={profile} onSaveProfile={handleSaveProfile} onClose={() => setIsProfileOpen(false)} />
         ) : (
         <main className="dashboard-main flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
           {currentView === 'dashboard' && (
@@ -278,6 +320,9 @@ export function App() {
               onOpenNewLeadModal={() => setIsCreateLeadModalOpen(true)}
               onLaunchDialerForLead={(lead) => handleOpenLeadDetail(lead, 'call')}
               onCompleteTask={handleCompleteTask}
+              onCreateTask={handleCreateTask}
+              onRescheduleTask={handleRescheduleTask}
+              onDeleteTask={handleDeleteTask}
               onToggleCampaignStatus={handleToggleCampaignStatus}
               onCreateCampaign={handleCreateCampaign}
               onSimulateWebhookLead={handleSimulateWebhookLead}
@@ -310,6 +355,9 @@ export function App() {
               followUpTasks={tasks}
               leads={leads}
               onCompleteTask={handleCompleteTask}
+              onCreateTask={handleCreateTask}
+              onRescheduleTask={handleRescheduleTask}
+              onDeleteTask={handleDeleteTask}
               onSelectLeadById={handleSelectLeadById}
               onLaunchDialerForLead={handleLaunchDialerForLead}
             />

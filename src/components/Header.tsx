@@ -12,6 +12,7 @@ interface HeaderProps {
   searchQuery?: string;
   setSearchQuery?: (query: string) => void;
   onOpenProfile?: () => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery = '',
   setSearchQuery,
   onOpenProfile,
+  onLogout,
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,9 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
   const setQuery = setSearchQuery || setInternalSearch;
   const navItems = [
     { id: 'dashboard' as const, label: 'Overview', icon: <BarChart3 size={15} /> },
-    { id: 'scraper' as const, label: 'Lead finder', icon: <Globe2 size={15} />, badge: 'LIVE' },
+    { id: 'scraper' as const, label: 'Find leads', icon: <Globe2 size={15} />, badge: 'LIVE' },
     { id: 'pipeline' as const, label: 'Pipeline', icon: <Layers3 size={15} />, count: leadsCount },
-    { id: 'automation' as const, label: 'Sequences', icon: <Mail size={15} />, count: pendingFollowupsCount || undefined },
+    { id: 'automation' as const, label: 'Follow-ups', icon: <Mail size={15} />, count: pendingFollowupsCount || undefined },
     { id: 'campaigns' as const, label: 'Campaigns', icon: <Megaphone size={15} /> },
   ];
 
@@ -52,10 +54,11 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
         <div className="workspace-actions">
           <label className="workspace-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search leads" /></label>
-          {onDownloadCSV && <button className="workspace-icon-action" onClick={onDownloadCSV} title="Export CSV"><Download size={15} /></button>}
-          <button className="workspace-scrape" onClick={onOpenQuickScrape ? onOpenQuickScrape : () => onNavigate('scraper')}><Globe2 size={15} /> <span>Scrape</span></button>
-          <button className="workspace-add" onClick={onOpenNewLeadModal}><Plus size={15} /> <span>Add</span></button>
+          {onDownloadCSV && <button className="workspace-icon-action" onClick={onDownloadCSV} title="Export your leads as a CSV file" aria-label="Export your leads as a CSV file"><Download size={15} /></button>}
+          <button className="workspace-scrape" onClick={onOpenQuickScrape ? onOpenQuickScrape : () => onNavigate('scraper')} title="Find new leads"><Globe2 size={15} /> <span>Find leads</span></button>
+          <button className="workspace-add" onClick={onOpenNewLeadModal} title="Add a lead manually"><Plus size={15} /> <span>Add lead</span></button>
           <button className="workspace-profile" onClick={onOpenProfile} title="Open profile">AS</button>
+          {onLogout && <button className="workspace-icon-action" onClick={onLogout} title="Sign out of OmniBiz">Log out</button>}
         </div>
       </div>
     </header>

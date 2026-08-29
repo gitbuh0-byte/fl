@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Bell, Check, Mail, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { ProfileSettings } from '../services/apiService';
 
 interface ProfilePageProps {
   onClose: () => void;
+  profile: ProfileSettings;
+  onSaveProfile: (profile: ProfileSettings) => void;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose }) => {
-  const [name, setName] = useState('Alex Sterling');
-  const [email, setEmail] = useState('alex@omnibiz.co');
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSaveProfile }) => {
+  const [name, setName] = useState(profile.name);
+  const [email, setEmail] = useState(profile.email);
+  const [notifications, setNotifications] = useState(profile.notifications);
   const [saved, setSaved] = useState(false);
 
   const handleSave = (event: React.FormEvent) => {
     event.preventDefault();
+    onSaveProfile({ name, email, notifications });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   };
@@ -30,9 +35,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose }) => {
         </form>
         <section className="profile-card">
           <div className="profile-card-heading"><span className="profile-icon blue-profile-icon"><Bell size={17} /></span><div><h2>Notifications</h2><p>Choose the updates that reach your inbox.</p></div></div>
-          <label className="profile-toggle"><span><b>Lead alerts</b><small>New high-intent prospects</small></span><input type="checkbox" defaultChecked /><i><Check size={12} /></i></label>
-          <label className="profile-toggle"><span><b>Task reminders</b><small>Daily follow-up queue</small></span><input type="checkbox" defaultChecked /><i><Check size={12} /></i></label>
-          <label className="profile-toggle"><span><b>Weekly digest</b><small>Pipeline movement summary</small></span><input type="checkbox" /><i><Check size={12} /></i></label>
+          <label className="profile-toggle"><span><b>Lead alerts</b><small>New high-intent prospects</small></span><input type="checkbox" checked={notifications.leadAlerts} onChange={(event) => setNotifications({ ...notifications, leadAlerts: event.target.checked })} /><i><Check size={12} /></i></label>
+          <label className="profile-toggle"><span><b>Task reminders</b><small>Daily follow-up queue</small></span><input type="checkbox" checked={notifications.taskReminders} onChange={(event) => setNotifications({ ...notifications, taskReminders: event.target.checked })} /><i><Check size={12} /></i></label>
+          <label className="profile-toggle"><span><b>Weekly digest</b><small>Pipeline movement summary</small></span><input type="checkbox" checked={notifications.weeklyDigest} onChange={(event) => setNotifications({ ...notifications, weeklyDigest: event.target.checked })} /><i><Check size={12} /></i></label>
         </section>
         <section className="profile-card profile-security"><div className="profile-card-heading"><span className="profile-icon"><ShieldCheck size={17} /></span><div><h2>Account access</h2><p>Your OmniBiz workspace is protected.</p></div></div><div className="security-row"><Mail size={15} /><span><b>Verified work email</b><small>{email}</small></span><strong>Active</strong></div><div className="security-row"><ShieldCheck size={15} /><span><b>Two-factor authentication</b><small>Recommended for every workspace</small></span><button type="button">Enable</button></div></section>
       </div>

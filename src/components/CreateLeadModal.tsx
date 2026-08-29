@@ -13,8 +13,6 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   onClose,
   onCreateLead,
 }) => {
-  if (!isOpen) return null;
-
   const [companyName, setCompanyName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [title, setTitle] = useState('');
@@ -25,6 +23,8 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   const [sourceChannel, setSourceChannel] = useState<LeadSource>('google_maps');
   const [dealValue, setDealValue] = useState(15000);
   const [notes, setNotes] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

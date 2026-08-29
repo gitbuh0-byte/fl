@@ -1,0 +1,601 @@
+{
+  "leads": [
+    {
+      "id": "lead-1",
+      "name": "Apex Dental Care & Orthodontics",
+      "contactPerson": "Dr. Marcus Vance",
+      "title": "Clinic Founder & Head Surgeon",
+      "email": "dr.vance@apexdentalcare.com",
+      "phone": "+1 (512) 480-9281",
+      "website": "https://www.apexdentalcare.com",
+      "address": "4100 Congress Ave, Suite 300, Austin, TX 78701",
+      "city": "Austin",
+      "country": "USA",
+      "rating": 4.9,
+      "reviewsCount": 342,
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/company/apex-dental-austin",
+        "instagram": "@apexdental_atx",
+        "facebook": "https://facebook.com/apexdentalcare",
+        "twitter": "@ApexDentalATX"
+      },
+      "sourceChannel": "google_maps",
+      "sourceDetails": {
+        "searchKeyword": "Cosmetic Dentistry & Orthodontics",
+        "searchLocation": "Austin, TX",
+        "cpl": 0
+      },
+      "pipelineStage": "meeting_scheduled",
+      "dealValue": 14500,
+      "leadScore": 94,
+      "intentLevel": "High",
+      "tags": [
+        "Google Maps Scraped",
+        "High Ticket",
+        "Multi-Location",
+        "Active Reviews"
+      ],
+      "notes": "Scraped from Austin Google Maps 4.9-star pack. Expressed urgent interest in reducing no-show patient appointments with automated AI voice reminders.",
+      "assignedTo": "Sarah Connor",
+      "createdAt": "2026-08-26T10:15:00Z",
+      "lastContactedAt": "2026-08-27T16:30:00Z",
+      "followUpDue": "2026-08-28T18:00:00Z",
+      "emailSequenceStatus": "step_2_sent",
+      "callStatus": "interested",
+      "aiInsights": {
+        "summary": "High-volume cosmetic dental practice looking to streamline patient intake and automated reminders.",
+        "recommendedPitch": "Highlight HIPAA-compliant automated 2-minute appointment confirmations and instant phone callbacks.",
+        "keyPainPoints": [
+          "High staff phone overhead",
+          "Weekend missed leads",
+          "Patient no-shows"
+        ],
+        "decisionMakerTitle": "Clinic Director"
+      },
+      "activityTimeline": [
+        {
+          "id": "act-1",
+          "type": "scraped",
+          "title": "Lead Extracted via Google Maps Scraper",
+          "description": "Captured business profile, +1 (512) 480-9281, social handles, and 342 Google verified reviews.",
+          "timestamp": "2026-08-26T10:15:00Z"
+        },
+        {
+          "id": "act-2",
+          "type": "email_sent",
+          "title": "Step 1 Intro Email Dispatched",
+          "description": "Subject: \"Automating Austin clinic patient follow-ups\"",
+          "timestamp": "2026-08-26T10:18:00Z"
+        },
+        {
+          "id": "act-3",
+          "type": "call_connected",
+          "title": "AI Outbound Voice Call Completed (4m 12s)",
+          "description": "Dr. Vance answered. Confirmed interest in automated reminders. Scheduled Zoom discovery.",
+          "timestamp": "2026-08-27T16:30:00Z"
+        },
+        {
+          "id": "act-4",
+          "type": "stage_changed",
+          "title": "Moved to Meeting Scheduled",
+          "description": "Deal pipeline updated to $14,500.",
+          "timestamp": "2026-08-27T16:35:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-2",
+      "name": "Velocity Scale Media",
+      "contactPerson": "Jessica Sterling",
+      "title": "VP of Growth & Media Buying",
+      "email": "jessica@velocityscale.io",
+      "phone": "+1 (415) 890-3419",
+      "website": "https://www.velocityscale.io",
+      "address": "550 Montgomery St, San Francisco, CA 94111",
+      "city": "San Francisco",
+      "country": "USA",
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/in/jessica-sterling-growth",
+        "twitter": "@jess_velocity",
+        "instagram": "@velocityscale"
+      },
+      "sourceChannel": "meta_ads",
+      "sourceDetails": {
+        "campaignId": "cmp-meta-1",
+        "campaignName": "Meta High-Growth Agencies Q3",
+        "utmSource": "facebook",
+        "utmMedium": "cpc",
+        "utmCampaign": "scale_pipeline_v2",
+        "adCreativeId": "cr-video-778",
+        "cpl": 38.5
+      },
+      "pipelineStage": "proposal_sent",
+      "dealValue": 28000,
+      "leadScore": 98,
+      "intentLevel": "High",
+      "tags": [
+        "Meta Ads Ingested",
+        "Enterprise Plan",
+        "Performance Agency"
+      ],
+      "notes": "Submitted Meta Lead Form wanting multi-channel scraper integration for their 45 B2B clients.",
+      "assignedTo": "David Miller",
+      "createdAt": "2026-08-25T14:22:00Z",
+      "lastContactedAt": "2026-08-27T11:00:00Z",
+      "followUpDue": "2026-08-28T20:00:00Z",
+      "emailSequenceStatus": "replied",
+      "callStatus": "interested",
+      "aiInsights": {
+        "summary": "Fast-growing paid media agency managing $800k/mo ad spend. Needs white-label lead enrichment and instant dialer.",
+        "recommendedPitch": "Demo multi-tenant scraper access and automated Zapier/Webhook pipeline routing.",
+        "keyPainPoints": [
+          "Manual lead qualification",
+          "Client reporting delays",
+          "Slow contact rates on Meta leads"
+        ]
+      },
+      "activityTimeline": [
+        {
+          "id": "act-20",
+          "type": "ingested",
+          "title": "Lead Ingested from Meta Lead Ads Webhook",
+          "description": "Captured form submission: UTM Campaign \"scale_pipeline_v2\" (CPL $38.50).",
+          "timestamp": "2026-08-25T14:22:00Z"
+        },
+        {
+          "id": "act-21",
+          "type": "enriched",
+          "title": "AI Enriched Lead Profile",
+          "description": "Identified 45+ employees, $4M ARR estimate, scraped Twitter and LinkedIn handles.",
+          "timestamp": "2026-08-25T14:25:00Z"
+        },
+        {
+          "id": "act-22",
+          "type": "stage_changed",
+          "title": "Proposal Sent ($28,000 Annual Tier)",
+          "description": "Custom Enterprise quote dispatched via email.",
+          "timestamp": "2026-08-27T11:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-3",
+      "name": "Nordic Clean HVAC Solutions",
+      "contactPerson": "Torsten Berg",
+      "title": "Managing Director & Operations",
+      "email": "torsten@nordicclean.de",
+      "phone": "+49 30 9283 7104",
+      "website": "https://nordicclean-solutions.com",
+      "address": "Friedrichstra�e 180, 10117 Berlin, Germany",
+      "city": "Berlin",
+      "country": "Germany",
+      "rating": 4.8,
+      "reviewsCount": 189,
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/company/nordic-clean-berlin",
+        "facebook": "https://facebook.com/nordiccleanhvac",
+        "instagram": "@nordic_clean_hvac"
+      },
+      "sourceChannel": "google_ads",
+      "sourceDetails": {
+        "campaignId": "cmp-gads-1",
+        "campaignName": "Google Search - Commercial Facility Scraper",
+        "utmSource": "google",
+        "utmMedium": "cpc",
+        "utmCampaign": "b2b_germany_expansion",
+        "cpl": 45.2
+      },
+      "pipelineStage": "negotiation",
+      "dealValue": 19500,
+      "leadScore": 91,
+      "intentLevel": "High",
+      "tags": [
+        "Google Ads",
+        "EU Market",
+        "Commercial HVAC",
+        "High Value"
+      ],
+      "notes": "Looking to prospect facility managers and commercial landlords in DACH region.",
+      "assignedTo": "Sarah Connor",
+      "createdAt": "2026-08-24T09:10:00Z",
+      "lastContactedAt": "2026-08-27T15:45:00Z",
+      "emailSequenceStatus": "completed",
+      "callStatus": "interested",
+      "activityTimeline": [
+        {
+          "id": "act-30",
+          "type": "ingested",
+          "title": "Google Search Lead Captured",
+          "description": "Searched for \"Automated B2B Lead Scraper for German Facilities\".",
+          "timestamp": "2026-08-24T09:10:00Z"
+        },
+        {
+          "id": "act-31",
+          "type": "call_connected",
+          "title": "Discovery Call with Torsten Berg",
+          "description": "Discussed GDPR compliance and Google Maps scraper accuracy in DACH.",
+          "timestamp": "2026-08-26T14:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-4",
+      "name": "Luminary Legal Group",
+      "contactPerson": "Elena Rostova",
+      "title": "Senior Managing Partner",
+      "email": "elena@luminarylegal.com",
+      "phone": "+1 (312) 670-4921",
+      "website": "https://www.luminarylegal.com",
+      "address": "233 S Wacker Dr, Floor 44, Chicago, IL 60606",
+      "city": "Chicago",
+      "country": "USA",
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/company/luminary-legal-group",
+        "twitter": "@LuminaryLaw"
+      },
+      "sourceChannel": "linkedin_ads",
+      "sourceDetails": {
+        "campaignId": "cmp-li-1",
+        "campaignName": "LinkedIn Legal Partners Outreach",
+        "utmSource": "linkedin",
+        "utmMedium": "sponsored_content",
+        "cpl": 72
+      },
+      "pipelineStage": "contacted",
+      "dealValue": 22000,
+      "leadScore": 86,
+      "intentLevel": "Medium",
+      "tags": [
+        "LinkedIn Ads",
+        "Legal B2B",
+        "Corporate Law"
+      ],
+      "notes": "Clicked LinkedIn Lead Gen Form. Needs automated email drips for prospective corporate clients.",
+      "assignedTo": "David Miller",
+      "createdAt": "2026-08-26T18:40:00Z",
+      "lastContactedAt": "2026-08-27T09:20:00Z",
+      "followUpDue": "2026-08-28T14:00:00Z",
+      "emailSequenceStatus": "step_1_sent",
+      "callStatus": "voicemail",
+      "activityTimeline": [
+        {
+          "id": "act-40",
+          "type": "ingested",
+          "title": "LinkedIn Lead Gen Form Ingested",
+          "description": "Title: Senior Managing Partner, Chicago IL.",
+          "timestamp": "2026-08-26T18:40:00Z"
+        },
+        {
+          "id": "act-41",
+          "type": "email_sent",
+          "title": "Sent Legal Growth Sequence Step 1",
+          "description": "Auto-customized email sent.",
+          "timestamp": "2026-08-27T09:20:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-5",
+      "name": "Horizon SaaS Labs",
+      "contactPerson": "Alexandre Dubois",
+      "title": "Chief Technology Officer",
+      "email": "alex@horizonsaas.co",
+      "phone": "+33 1 42 68 55 00",
+      "website": "https://horizonsaas.co",
+      "address": "14 Rue de la Paix, 75002 Paris, France",
+      "city": "Paris",
+      "country": "France",
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/in/alexandredubois-tech",
+        "twitter": "@alex_horizon_dev",
+        "tiktok": "@horizonsaas"
+      },
+      "sourceChannel": "social_scrape",
+      "sourceDetails": {
+        "searchKeyword": "AI Startups Paris Series A",
+        "utmSource": "linkedin_social_crawler",
+        "cpl": 0
+      },
+      "pipelineStage": "enriched",
+      "dealValue": 16000,
+      "leadScore": 89,
+      "intentLevel": "High",
+      "tags": [
+        "Social Scraped",
+        "Series A Tech",
+        "Fast Scaling"
+      ],
+      "notes": "Scraped from LinkedIn Tech Founders list. High social engagement on Twitter & LinkedIn.",
+      "assignedTo": "Sarah Connor",
+      "createdAt": "2026-08-27T08:00:00Z",
+      "emailSequenceStatus": "idle",
+      "callStatus": "not_called",
+      "activityTimeline": [
+        {
+          "id": "act-50",
+          "type": "scraped",
+          "title": "Social Scraper Discovery",
+          "description": "Captured Twitter @alex_horizon_dev and verified email alex@horizonsaas.co.",
+          "timestamp": "2026-08-27T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-6",
+      "name": "Sentry Cloud Security",
+      "contactPerson": "Rachel Sterling",
+      "title": "Head of Channel Partnerships",
+      "email": "rachel.s@sentrycloudsec.com",
+      "phone": "+1 (206) 555-0199",
+      "website": "https://www.sentrycloudsec.com",
+      "address": "1201 3rd Ave, Seattle, WA 98101",
+      "city": "Seattle",
+      "country": "USA",
+      "socialHandles": {
+        "linkedin": "https://linkedin.com/company/sentrycloudsec",
+        "twitter": "@SentryCloudHQ"
+      },
+      "sourceChannel": "web_scrape",
+      "sourceDetails": {
+        "scrapedUrl": "https://sentrycloudsec.com/contact",
+        "cpl": 0
+      },
+      "pipelineStage": "closed_won",
+      "dealValue": 36000,
+      "leadScore": 99,
+      "intentLevel": "High",
+      "tags": [
+        "Web Scraper",
+        "Enterprise Annual",
+        "Closed Won"
+      ],
+      "notes": "Closed 1-year enterprise agreement. Full automated maps scraper + dialer integration deployed.",
+      "assignedTo": "David Miller",
+      "createdAt": "2026-08-20T11:00:00Z",
+      "lastContactedAt": "2026-08-26T17:00:00Z",
+      "emailSequenceStatus": "completed",
+      "callStatus": "interested",
+      "activityTimeline": [
+        {
+          "id": "act-60",
+          "type": "scraped",
+          "title": "Discovered via Deep Web Scanner",
+          "description": "Scraped DOM contact tags and VP phone line.",
+          "timestamp": "2026-08-20T11:00:00Z"
+        },
+        {
+          "id": "act-61",
+          "type": "stage_changed",
+          "title": "Deal Won ($36,000 ARR)",
+          "description": "Signed agreement executed.",
+          "timestamp": "2026-08-26T17:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "lead-7",
+      "name": "Vitality MedSpa & Aesthetics",
+      "contactPerson": "Chloe Chen",
+      "title": "Owner & Medical Director",
+      "email": "chloe@vitalitymedspa.com",
+      "phone": "+1 (305) 912-7740",
+      "website": "https://vitalitymedspa.com",
+      "address": "800 Brickell Ave, Miami, FL 33131",
+      "city": "Miami",
+      "country": "USA",
+      "rating": 4.9,
+      "reviewsCount": 428,
+      "socialHandles": {
+        "instagram": "@vitalitymedspa_miami",
+        "tiktok": "@vitalityaesthetics",
+        "facebook": "https://facebook.com/vitalitymedspamiami"
+      },
+      "sourceChannel": "google_maps",
+      "sourceDetails": {
+        "searchKeyword": "Med Spa Aesthetics Miami",
+        "searchLocation": "Miami, FL"
+      },
+      "pipelineStage": "new",
+      "dealValue": 12000,
+      "leadScore": 87,
+      "intentLevel": "Medium",
+      "tags": [
+        "Google Maps Scraped",
+        "Instagram Verified",
+        "Miami Local"
+      ],
+      "notes": "Top-ranked Google Maps Med Spa in Brickell with strong TikTok & Instagram presence.",
+      "assignedTo": "Sarah Connor",
+      "createdAt": "2026-08-28T01:30:00Z",
+      "emailSequenceStatus": "idle",
+      "callStatus": "not_called",
+      "activityTimeline": [
+        {
+          "id": "act-70",
+          "type": "scraped",
+          "title": "Google Maps Places Extracted",
+          "description": "Discovered phone +1 (305) 912-7740 and Instagram @vitalitymedspa_miami with 428 reviews.",
+          "timestamp": "2026-08-28T01:30:00Z"
+        }
+      ]
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "cmp-meta-1",
+      "name": "Meta Ads - High-Growth B2B Agencies Q3",
+      "platform": "Meta Ads",
+      "status": "active",
+      "budget": 6500,
+      "spend": 3850,
+      "impressions": 142000,
+      "clicks": 4120,
+      "leadsCount": 98,
+      "cpl": 39.28,
+      "wonDealsCount": 4,
+      "revenue": 78000,
+      "utmCampaign": "scale_pipeline_v2",
+      "adGroup": "AdSet - Agency Founders Lookalike",
+      "lastLeadAt": "2026-08-28T01:10:00Z"
+    },
+    {
+      "id": "cmp-gads-1",
+      "name": "Google Ads - Intent Search Commercial Leads",
+      "platform": "Google Ads",
+      "status": "active",
+      "budget": 8000,
+      "spend": 5200,
+      "impressions": 89000,
+      "clicks": 3450,
+      "leadsCount": 115,
+      "cpl": 45.21,
+      "wonDealsCount": 6,
+      "revenue": 112000,
+      "utmCampaign": "b2b_germany_expansion",
+      "adGroup": "Search - Lead Scraper CRM Software",
+      "lastLeadAt": "2026-08-28T02:00:00Z"
+    },
+    {
+      "id": "cmp-li-1",
+      "name": "LinkedIn Ads - Legal & Professional Partners",
+      "platform": "LinkedIn Ads",
+      "status": "active",
+      "budget": 5000,
+      "spend": 2880,
+      "impressions": 48000,
+      "clicks": 1120,
+      "leadsCount": 40,
+      "cpl": 72,
+      "wonDealsCount": 2,
+      "revenue": 44000,
+      "utmCampaign": "legal_partners_outreach",
+      "adGroup": "Sponsored - Managing Partners 50+",
+      "lastLeadAt": "2026-08-27T19:40:00Z"
+    },
+    {
+      "id": "cmp-tiktok-1",
+      "name": "TikTok Ads - E-commerce & Creator Brand Pipeline",
+      "platform": "TikTok Ads",
+      "status": "active",
+      "budget": 3500,
+      "spend": 1940,
+      "impressions": 210000,
+      "clicks": 5800,
+      "leadsCount": 84,
+      "cpl": 23.09,
+      "wonDealsCount": 3,
+      "revenue": 39000,
+      "utmCampaign": "creator_brand_growth",
+      "adGroup": "In-Feed - Instant Lead Form",
+      "lastLeadAt": "2026-08-27T22:15:00Z"
+    }
+  ],
+  "cadences": [
+    {
+      "id": "cad-1",
+      "name": "Multi-Channel Scraped Leads High-Velocity Drip",
+      "description": "Triggered within 2 minutes of Google Maps or Social lead extraction.",
+      "targetChannel": "Google Maps & Social Scraper",
+      "activeEnrollments": 42,
+      "openRate": 68.4,
+      "replyRate": 24.1,
+      "steps": [
+        {
+          "stepNumber": 1,
+          "delayDays": 0,
+          "subject": "Quick question regarding {{company}}'s client acquisition in {{city}}",
+          "bodyTemplate": "Hi {{name}},\n\nI noticed {{company}} has strong traction in {{city}} (especially your impressive reviews!).\n\nWe built an omnichannel system that captures leads from Google Maps, Meta ads, and social channels, automating follow-ups within 120 seconds to 3x demo bookings.\n\nWould you be open to a 10-minute preview this week?\n\nBest,\nSales Engineering Team"
+        },
+        {
+          "stepNumber": 2,
+          "delayDays": 2,
+          "subject": "How {{company}} can reduce missed inbound inquiries by 70%",
+          "bodyTemplate": "Hi {{name}},\n\nFollowing up on my note from Tuesday. Most teams in {{category}} lose up to 40% of potential leads simply due to slow outreach (>2 hours response delay).\n\nOur automated AI dialer and instant personalized email sequences guarantee immediate contact when high-intent prospects search for you.\n\nLet me know if 2pm Thursday works for a quick screen share!\n\nBest,\nSales Engineering Team"
+        },
+        {
+          "stepNumber": 3,
+          "delayDays": 5,
+          "subject": "Closing the loop for {{company}}",
+          "bodyTemplate": "Hi {{name}},\n\nI assume you are heads-down growing {{company}} right now. If pipeline automation and scraper lead generation aren't top priorities this quarter, no worries at all!\n\nFeel free to keep our portal in mind whenever you want to ramp up B2B prospecting.\n\nBest regards,\nSales Engineering Team"
+        }
+      ]
+    },
+    {
+      "id": "cad-2",
+      "name": "Paid Ad Ingestion Instant Response Cadence",
+      "description": "Instant lead confirmation and calendar link for Meta and Google Ads form submits.",
+      "targetChannel": "Ad Campaigns (Meta / Google / LinkedIn)",
+      "activeEnrollments": 88,
+      "openRate": 82.5,
+      "replyRate": 38.9,
+      "steps": [
+        {
+          "stepNumber": 1,
+          "delayDays": 0,
+          "subject": "Your requested OmniBiz pipeline breakdown + demo access",
+          "bodyTemplate": "Hi {{name}},\n\nThank you for requesting access through our {{sourceChannel}} campaign!\n\nI've prepared a customized pipeline report for {{company}}. You can grab a dedicated 15-minute walkthrough directly on my calendar here: https://cal.com/omnibiz/discovery\n\nLooking forward to speaking soon,\nDavid Miller"
+        },
+        {
+          "stepNumber": 2,
+          "delayDays": 1,
+          "subject": "Case Study: How Apex scaled 340+ qualified leads in 30 days",
+          "bodyTemplate": "Hi {{name}},\n\nThought you might find this relevant before our call: we helped a similar team capture 340+ verified phone numbers and social handles from Google Maps, closing $78k in pipeline within their first month.\n\nHappy to walk through the exact scraper filters we used!\n\nBest,\nDavid Miller"
+        }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "leadId": "lead-1",
+      "leadName": "Dr. Marcus Vance",
+      "leadCompany": "Apex Dental Care & Orthodontics",
+      "leadPhone": "+1 (512) 480-9281",
+      "leadEmail": "dr.vance@apexdentalcare.com",
+      "type": "meeting",
+      "dueDate": "Today at 6:00 PM",
+      "priority": "urgent",
+      "completed": false,
+      "notes": "Host Zoom discovery walkthrough on automated patient callbacks and review SMS pipeline."
+    },
+    {
+      "id": "task-2",
+      "leadId": "lead-2",
+      "leadName": "Jessica Sterling",
+      "leadCompany": "Velocity Scale Media",
+      "leadPhone": "+1 (415) 890-3419",
+      "leadEmail": "jessica@velocityscale.io",
+      "type": "proposal",
+      "dueDate": "Today at 8:00 PM",
+      "priority": "urgent",
+      "completed": false,
+      "notes": "Follow up on Enterprise Tier Proposal ($28,000). Confirm multi-client scraper seat count."
+    },
+    {
+      "id": "task-3",
+      "leadId": "lead-4",
+      "leadName": "Elena Rostova",
+      "leadCompany": "Luminary Legal Group",
+      "leadPhone": "+1 (312) 670-4921",
+      "leadEmail": "elena@luminarylegal.com",
+      "type": "call",
+      "dueDate": "Today at 2:00 PM",
+      "priority": "high",
+      "completed": false,
+      "notes": "Outbound AI dialer retry after morning voicemail. Pitch corporate litigation prospecting module."
+    },
+    {
+      "id": "task-4",
+      "leadId": "lead-7",
+      "leadName": "Chloe Chen",
+      "leadCompany": "Vitality MedSpa & Aesthetics",
+      "leadPhone": "+1 (305) 912-7740",
+      "leadEmail": "chloe@vitalitymedspa.com",
+      "type": "email",
+      "dueDate": "Tomorrow at 10:00 AM",
+      "priority": "medium",
+      "completed": false,
+      "notes": "Enroll in Multi-Channel Scraped Leads sequence Step 1 with custom Miami aesthetics angle."
+    }
+  ]
+}

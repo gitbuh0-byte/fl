@@ -138,6 +138,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .fresh-dashboard h1, .fresh-dashboard h2, .fresh-dashboard strong, .fresh-dashboard b { font-family: 'Space Grotesk', sans-serif; }
 .fresh-dashboard-top h1 { font-size: clamp(32px, 4vw, 48px); font-weight: 500; letter-spacing: -.07em; line-height: .95; margin: 6px 0 9px; }
 .fresh-dashboard-top p { color: #77736b; font-size: 13px; margin: 0; }
+.fresh-start-guide { align-items: center; background: #f7f5ef; border: 1px solid #dedbd3; display: flex; gap: 18px; margin-bottom: 24px; padding: 16px 18px; }
+.fresh-guide-intro { display: flex; flex: 1.2; flex-direction: column; gap: 5px; min-width: 190px; }
+.fresh-guide-intro strong { color: #181818; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; }
+.fresh-guide-step { align-items: center; display: flex; gap: 9px; min-width: 145px; }
+.fresh-guide-step > span { align-items: center; background: #0f1c2e; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 25px; font-family: 'DM Mono', monospace; font-size: 11px; height: 25px; justify-content: center; }
+.fresh-guide-step b, .fresh-guide-step small { display: block; }
+.fresh-guide-step b { color: #181818; font-size: 12px; font-weight: 600; }
+.fresh-guide-step small { color: #77736b; font-size: 10px; margin-top: 2px; }
+.fresh-guide-arrow { color: #b0aaa0; flex: 0 0 auto; }
 .fresh-kicker { color: #ff4a17; font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
 .fresh-top-actions { display: flex; gap: 8px; }
 .fresh-outline-button, .fresh-orange-button { align-items: center; cursor: pointer; display: inline-flex; font-size: 11px; gap: 8px; justify-content: center; padding: 12px 15px; }
@@ -307,4 +316,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .workspace-menu-toggle { align-self: center; margin: 0; order: 2; }
   .workspace-actions { align-items: center; margin-left: auto; }
   .workspace-nav.is-open { top: 64px; }
+}
+
+@media (max-width: 700px) {
+  .fresh-start-guide { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .fresh-guide-intro { min-width: 0; }
+  .fresh-guide-arrow { display: none; }
+  .fresh-guide-step { min-width: 0; }
 }

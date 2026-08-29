@@ -58,7 +58,13 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
     const newCamp: Campaign = {
       id: `camp_${Date.now()}`,
       name,
-      platform,
+      platform: platform === 'meta_ads'
+        ? 'Meta Ads'
+        : platform === 'google_ads'
+          ? 'Google Ads'
+          : platform === 'linkedin_ads'
+            ? 'LinkedIn Ads'
+            : 'TikTok Ads',
       status: 'active',
       budget,
       spend: 0,
@@ -225,7 +231,7 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
                   </td>
 
                   <td className="p-4 font-mono font-bold text-emerald-400">
-                    ${camp.cpl ? camp.cpl.toFixed(2) : '0.00'}
+                    ${camp.leadsCount > 0 ? ((camp.spend || 0) / camp.leadsCount).toFixed(2) : '0.00'}
                   </td>
 
                   <td className="p-4 font-mono font-bold text-gray-200">

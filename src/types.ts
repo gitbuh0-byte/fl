@@ -74,7 +74,9 @@ export interface Lead {
   lastContactedAt?: string;
   followUpDue?: string;
   emailSequenceStatus?: 'idle' | 'enrolled' | 'step_1_sent' | 'step_2_sent' | 'completed' | 'replied';
+  emailDeliveryStatus?: 'queued' | 'sent' | 'delivered' | 'bounced' | 'failed';
   callStatus?: 'not_called' | 'dialing' | 'connected' | 'voicemail' | 'interested' | 'callback_requested' | 'not_interested';
+  callProviderStatus?: 'queued' | 'ringing' | 'connected' | 'completed' | 'failed';
   callRecordingTranscript?: string;
   aiInsights?: {
     summary?: string;

@@ -30,7 +30,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { Lead, PipelineStage, ActivityItem } from '../types';
-import { enrichLeadWithAI, draftPersonalizedEmail, simulateCallTurn } from '../services/apiService';
+import { createCallSession, dispatchEmail, enrichLeadWithAI, draftPersonalizedEmail, simulateCallTurn } from '../services/apiService';
 
 interface LeadDetailModalProps {
   lead: Lead | null;
@@ -47,8 +47,6 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   onUpdateLead,
   initialActionTab = 'overview',
 }) => {
-  if (!isOpen || !lead) return null;
-
   const [activeTab, setActiveTab] = useState<'overview' | 'email' | 'call' | 'notes'>(initialActionTab);
   
   // AI Enrichment state
@@ -60,6 +58,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   const [emailBody, setEmailBody] = useState('');
   const [isDraftingEmail, setIsDraftingEmail] = useState(false);
   const [emailSentSuccess, setEmailSentSuccess] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // AI Voice Call Dialer state
   const [callStatus, setCallStatus] = useState<'idle' | 'ringing' | 'connected' | 'ended'>('idle');
@@ -70,15 +69,15 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   const [callOutcome, setCallOutcome] = useState<'interested' | 'callback' | 'voicemail' | 'not_interested' | null>(null);
 
   // Notes state
-  const [notesText, setNotesText] = useState(lead.notes || '');
-  const [dealValueInput, setDealValueInput] = useState(lead.dealValue || 0);
+  const [notesText, setNotesText] = useState(lead?.notes || '');
+  const [dealValueInput, setDealValueInput] = useState(lead?.dealValue || 0);
 
   // Initialize draft email when modal opens or step changes
   useEffect(() => {
-    if (activeTab === 'email' && !emailSubject) {
+    if (lead && activeTab === 'email' && !emailSubject) {
       handleDraftAIEmail(1);
     }
-  }, [activeTab, lead.id]);
+  }, [activeTab, emailSubject, lead?.id]);
 
   // Call timer effect
   useEffect(() => {
@@ -92,6 +91,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
     }
     return () => clearInterval(interval);
   }, [callStatus]);
+
+  if (!isOpen || !lead) return null;
 
   // AI Enrichment Handler
   const handleEnrichLead = async () => {
@@ -148,7 +149,20 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   };
 
   // Send Email Handler
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const delivery = await dispatchEmail(lead, emailSubject, emailBody);
+      onUpdateLead({
+        ...lead,
+        emailDeliveryStatus: delivery.status === 'queued' ? 'queued' : 'sent',
+      });
+    } catch (error) {
+      console.error('Email dispatch error:', error);
+      setIsSendingEmail(false);
+      return;
+    }
+
     setEmailSentSuccess(true);
     const newActivity: ActivityItem = {
       id: `act_${Date.now()}`,
@@ -162,11 +176,13 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
       ...lead,
       pipelineStage: lead.pipelineStage === 'new' || lead.pipelineStage === 'enriched' ? 'contacted' : lead.pipelineStage,
       emailSequenceStatus: emailStep === 1 ? 'step_1_sent' : emailStep === 2 ? 'step_2_sent' : 'completed',
+      emailDeliveryStatus: 'sent',
       lastContactedAt: new Date().toISOString(),
       activityTimeline: [newActivity, ...lead.activityTimeline],
     };
 
     onUpdateLead(updated);
+    setIsSendingEmail(false);
 
     setTimeout(() => {
       setEmailSentSuccess(false);
@@ -185,7 +201,17 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   };
 
   // Start AI Phone Call Simulator
-  const handleStartCall = () => {
+  const handleStartCall = async () => {
+    try {
+      const call = await createCallSession(lead);
+      onUpdateLead({
+        ...lead,
+        callProviderStatus: call.status === 'queued' ? 'queued' : 'connected',
+      });
+    } catch (error) {
+      console.error('Call session error:', error);
+      return;
+    }
     setCallStatus('ringing');
     setCallDuration(0);
     setCallTranscript([]);
@@ -280,6 +306,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
       ...lead,
       pipelineStage: newStage,
       callStatus: callOutcome === 'interested' ? 'interested' : 'connected',
+      callProviderStatus: 'completed',
       lastContactedAt: new Date().toISOString(),
       activityTimeline: [newActivity, ...lead.activityTimeline],
     };
@@ -666,12 +693,13 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
 
                     <button
                       onClick={handleSendEmail}
+                      disabled={isSendingEmail}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 cursor-pointer uppercase tracking-wider"
                     >
                       {emailSentSuccess ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 text-white" />
-                          <span>Email Dispatched!</span>
+                          <span>{isSendingEmail ? 'Dispatching...' : 'Email Dispatched!'}</span>
                         </>
                       ) : (
                         <>

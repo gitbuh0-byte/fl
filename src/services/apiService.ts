@@ -1,4 +1,117 @@
-import { Lead, ScrapedLeadResult } from '../types';
+import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
+
+export interface AppState {
+  leads: Lead[];
+  campaigns: Campaign[];
+  cadences: EmailCadence[];
+  tasks: FollowUpTask[];
+  webhookEvents?: string[];
+  profile?: ProfileSettings;
+}
+
+export interface ProfileSettings {
+  name: string;
+  email: string;
+  notifications: {
+    leadAlerts: boolean;
+    taskReminders: boolean;
+    weeklyDigest: boolean;
+  };
+}
+
+export interface AuthUser {
+  email: string;
+  name: string;
+}
+
+const authTokenKey = 'omnibiz-auth-token';
+
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem(authTokenKey);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function createSession(email: string): Promise<AuthUser> {
+  const res = await fetch('/api/auth/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || `Server returned ${res.status}`);
+  const data = await res.json();
+  localStorage.setItem(authTokenKey, data.token);
+  return data.user;
+}
+
+export async function getSession(): Promise<AuthUser | null> {
+  if (!localStorage.getItem(authTokenKey)) return null;
+  const res = await fetch('/api/auth/session', { headers: authHeaders() });
+  if (!res.ok) {
+    localStorage.removeItem(authTokenKey);
+    return null;
+  }
+  return (await res.json()).user;
+}
+
+export async function destroySession(): Promise<void> {
+  await fetch('/api/auth/session', { method: 'DELETE', headers: authHeaders() });
+  localStorage.removeItem(authTokenKey);
+}
+
+export async function getAppState(): Promise<AppState> {
+  const res = await fetch('/api/state', { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return await res.json();
+}
+
+export async function saveAppState(state: AppState): Promise<void> {
+  const res = await fetch('/api/state', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(state),
+  });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+}
+
+export async function ingestCampaignLead(campaignId: string, lead: {
+  eventId: string;
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+  contactPerson?: string;
+}): Promise<{ lead: Lead; campaign: Campaign }> {
+  const res = await fetch('/api/campaigns/webhook', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ campaignId, ...lead }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
+  return data;
+}
+
+export async function dispatchEmail(lead: Pick<Lead, 'id' | 'email'>, subject: string, body: string): Promise<{ status: string; provider: string; messageId: string }> {
+  const res = await fetch('/api/outreach/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ leadId: lead.id, to: lead.email, subject, body }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
+  return data;
+}
+
+export async function createCallSession(lead: Pick<Lead, 'id' | 'phone'>): Promise<{ status: string; provider: string; callId: string }> {
+  const res = await fetch('/api/outreach/call', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ leadId: lead.id, phone: lead.phone }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
+  return data;
+}
 
 export async function scrapeGoogleMaps(params: {
   keyword: string;

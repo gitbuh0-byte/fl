@@ -1,15 +1,62 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
+import { initialLeads, initialCampaigns, initialCadences, initialFollowUpTasks } from './src/data/initialData';
+import type { Lead } from './src/types';
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const stateFilePath = path.join(process.cwd(), 'data', 'app-state.json');
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const sessions = new Map<string, { email: string; name: string; expiresAt: number }>();
 
-app.use(express.json());
+type AppState = {
+  leads: typeof initialLeads;
+  campaigns: typeof initialCampaigns;
+  cadences: typeof initialCadences;
+  tasks: typeof initialFollowUpTasks;
+  webhookEvents?: string[];
+  profile?: {
+    name: string;
+    email: string;
+    notifications: { leadAlerts: boolean; taskReminders: boolean; weeklyDigest: boolean };
+  };
+};
+
+function readAppState(): AppState {
+  try {
+    if (fs.existsSync(stateFilePath)) {
+      return JSON.parse(fs.readFileSync(stateFilePath, 'utf8')) as AppState;
+    }
+  } catch (error) {
+    console.error('Failed to read persisted app state:', error);
+  }
+
+  return {
+    leads: initialLeads,
+    campaigns: initialCampaigns,
+    cadences: initialCadences,
+    tasks: initialFollowUpTasks,
+    webhookEvents: [],
+    profile: { name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } },
+  };
+}
+
+function writeAppState(state: AppState): void {
+  fs.mkdirSync(path.dirname(stateFilePath), { recursive: true });
+  const temporaryPath = `${stateFilePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporaryPath, JSON.stringify(state, null, 2), 'utf8');
+  fs.renameSync(temporaryPath, stateFilePath);
+}
+
+app.use(express.json({ limit: '2mb' }));
 
 // Initialize Gemini AI Client lazily/safely
 let geminiClient: GoogleGenAI | null = null;
@@ -38,6 +85,284 @@ app.get('/api/health', (req, res) => {
     geminiEnabled: Boolean(process.env.GEMINI_API_KEY),
     timestamp: new Date().toISOString(),
   });
+});
+
+app.post('/api/auth/session', (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid work email is required' });
+  }
+
+  const token = randomUUID();
+  const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+  sessions.set(token, { email, name, expiresAt: Date.now() + SESSION_TTL_MS });
+  res.json({ token, user: { email, name } });
+});
+
+app.get('/api/auth/session', (req, res) => {
+  const token = req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  const session = token ? sessions.get(token) : undefined;
+  const user = session && session.expiresAt > Date.now() ? session : undefined;
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  res.json({ user: { email: user.email, name: user.name } });
+});
+
+app.delete('/api/auth/session', (req, res) => {
+  const token = req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  if (token) sessions.delete(token);
+  res.status(204).send();
+});
+
+function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const token = req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  const session = token ? sessions.get(token) : undefined;
+  if (!session || session.expiresAt <= Date.now()) {
+    if (token) sessions.delete(token);
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  next();
+}
+
+async function postToProvider(url: string, token: string | undefined, payload: Record<string, unknown>): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (response.ok) return;
+      throw new Error(`Provider returned ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Provider request failed');
+}
+
+app.get('/api/state', requireAuth, (req, res) => {
+  res.json(readAppState());
+});
+
+app.put('/api/state', requireAuth, (req, res) => {
+  const { leads, campaigns, cadences, tasks } = req.body as Partial<AppState>;
+  if (Array.isArray(leads) && leads.length > 10000) return res.status(413).json({ error: 'Lead limit exceeded' });
+  if (Array.isArray(campaigns) && campaigns.length > 1000) return res.status(413).json({ error: 'Campaign limit exceeded' });
+  if (Array.isArray(tasks) && tasks.length > 10000) return res.status(413).json({ error: 'Task limit exceeded' });
+  const currentState = readAppState();
+  const nextState: AppState = {
+    leads: Array.isArray(leads) ? leads : currentState.leads,
+    campaigns: Array.isArray(campaigns) ? campaigns : currentState.campaigns,
+    cadences: Array.isArray(cadences) ? cadences : currentState.cadences,
+    tasks: Array.isArray(tasks) ? tasks : currentState.tasks,
+    webhookEvents: Array.isArray(req.body?.webhookEvents) ? req.body.webhookEvents : currentState.webhookEvents,
+    profile: req.body?.profile && typeof req.body.profile.name === 'string' && req.body.profile.name.trim() && typeof req.body.profile.email === 'string' && req.body.profile.email.includes('@') ? {
+      name: req.body.profile.name.trim().slice(0, 120),
+      email: req.body.profile.email.trim().toLowerCase().slice(0, 254),
+      notifications: {
+        leadAlerts: req.body.profile.notifications?.leadAlerts !== false,
+        taskReminders: req.body.profile.notifications?.taskReminders !== false,
+        weeklyDigest: req.body.profile.notifications?.weeklyDigest === true,
+      },
+    } : currentState.profile,
+  };
+
+  try {
+    writeAppState(nextState);
+    res.json({ success: true, state: nextState });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Unable to persist app state' });
+  }
+});
+
+app.post('/api/outreach/callback', (req, res) => {
+  const configuredSecret = process.env.OUTREACH_CALLBACK_SECRET;
+  if (isProduction && !configuredSecret) {
+    return res.status(503).json({ error: 'Outreach callback secret is not configured' });
+  }
+  if (configuredSecret && req.header('x-callback-secret') !== configuredSecret) {
+    return res.status(401).json({ error: 'Invalid callback secret' });
+  }
+
+  const { leadId, eventType, status, detail = '', transcript, durationSeconds } = req.body || {};
+  const validEvents = ['email', 'call'];
+  const validStatuses = ['queued', 'sent', 'delivered', 'bounced', 'failed', 'ringing', 'connected', 'completed'];
+  if (typeof leadId !== 'string' || !validEvents.includes(eventType) || !validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'leadId, eventType, and a valid status are required' });
+  }
+
+  const state = readAppState();
+  const lead = state.leads.find((item) => item.id === leadId);
+  if (!lead) return res.status(404).json({ error: 'Lead not found' });
+  const now = new Date().toISOString();
+  const activityType: Lead['activityTimeline'][number]['type'] = eventType === 'email' ? 'email_sent' : 'call_connected';
+  const updatedLead: Lead = {
+    ...lead,
+    ...(eventType === 'email' ? { emailDeliveryStatus: status as Lead['emailDeliveryStatus'] } : { callProviderStatus: status as Lead['callProviderStatus'] }),
+    ...(eventType === 'call' && typeof transcript === 'string' ? { callRecordingTranscript: transcript } : {}),
+    activityTimeline: [{
+      id: `act_${randomUUID()}`,
+      type: activityType,
+      title: `${eventType === 'email' ? 'Email' : 'Call'} ${status}`,
+      description: detail || `${eventType === 'email' ? 'Email delivery' : 'Call session'} reported ${status}.`,
+      timestamp: now,
+      metadata: typeof durationSeconds === 'number' ? { durationSeconds } : undefined,
+    }, ...lead.activityTimeline],
+  };
+
+  try {
+    writeAppState({ ...state, leads: state.leads.map((item) => item.id === leadId ? updatedLead : item) });
+    res.json({ success: true, lead: updatedLead });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Unable to persist outreach callback' });
+  }
+});
+
+app.post('/api/outreach/email', requireAuth, async (req, res) => {
+  const { leadId, to, subject, body } = req.body || {};
+  if (typeof leadId !== 'string' || typeof to !== 'string' || !to.includes('@') || typeof subject !== 'string' || !subject.trim() || typeof body !== 'string' || !body.trim()) {
+    return res.status(400).json({ error: 'leadId, recipient, subject, and body are required' });
+  }
+
+  const messageId = `msg_${randomUUID()}`;
+  const providerUrl = process.env.EMAIL_PROVIDER_URL;
+  if (!providerUrl) {
+    return res.status(202).json({ success: true, status: 'simulated', provider: 'simulation', messageId });
+  }
+
+  try {
+    await postToProvider(providerUrl, process.env.EMAIL_PROVIDER_TOKEN, { messageId, leadId, to, subject, body });
+    res.status(202).json({ success: true, status: 'queued', provider: 'webhook', messageId });
+  } catch (error) {
+    console.error('Email provider error:', error);
+    res.status(502).json({ error: 'Email provider unavailable' });
+  }
+});
+
+app.post('/api/outreach/call', requireAuth, async (req, res) => {
+  const { leadId, phone } = req.body || {};
+  if (typeof leadId !== 'string' || typeof phone !== 'string' || !phone.trim()) {
+    return res.status(400).json({ error: 'leadId and phone are required' });
+  }
+
+  const callId = `call_${randomUUID()}`;
+  const providerUrl = process.env.TELEPHONY_PROVIDER_URL;
+  if (!providerUrl) {
+    return res.status(202).json({ success: true, status: 'simulated', provider: 'simulation', callId });
+  }
+
+  try {
+    await postToProvider(providerUrl, process.env.TELEPHONY_PROVIDER_TOKEN, { callId, leadId, phone });
+    res.status(202).json({ success: true, status: 'queued', provider: 'webhook', callId });
+  } catch (error) {
+    console.error('Telephony provider error:', error);
+    res.status(502).json({ error: 'Telephony provider unavailable' });
+  }
+});
+
+app.post('/api/campaigns/webhook', (req, res) => {
+  const configuredSecret = process.env.CAMPAIGN_WEBHOOK_SECRET;
+  if (isProduction && !configuredSecret) {
+    return res.status(503).json({ error: 'Campaign webhook secret is not configured' });
+  }
+  if (configuredSecret && req.header('x-webhook-secret') !== configuredSecret) {
+    return res.status(401).json({ error: 'Invalid webhook secret' });
+  }
+
+  const { campaignId, eventId, name, email, phone = '', company = name, contactPerson = '' } = req.body || {};
+  if (typeof campaignId !== 'string' || !campaignId.trim()) {
+    return res.status(400).json({ error: 'campaignId is required' });
+  }
+  if (typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid email is required' });
+  }
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+
+  const state = readAppState();
+  const campaign = state.campaigns.find((item) => item.id === campaignId);
+  if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+  const dedupeKey = typeof eventId === 'string' && eventId.trim()
+    ? eventId.trim()
+    : `${campaignId}:${email.trim().toLowerCase()}`;
+  const webhookEvents = state.webhookEvents || [];
+  if (webhookEvents.includes(dedupeKey)) {
+    return res.status(200).json({ success: true, duplicate: true });
+  }
+
+  const leadCost = campaign.cpl || 35;
+  const sourceChannel: Lead['sourceChannel'] = campaign.platform === 'Meta Ads'
+    ? 'meta_ads'
+    : campaign.platform === 'Google Ads'
+      ? 'google_ads'
+      : campaign.platform === 'LinkedIn Ads'
+        ? 'linkedin_ads'
+        : campaign.platform === 'TikTok Ads'
+          ? 'tiktok_ads'
+          : 'manual';
+  const now = new Date().toISOString();
+  const lead: Lead = {
+    ...initialLeads[0],
+    id: `lead_webhook_${randomUUID()}`,
+    name: company || name,
+    contactPerson: contactPerson || name,
+    email: email.trim().toLowerCase(),
+    phone: String(phone),
+    sourceChannel,
+    sourceDetails: {
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      utmSource: campaign.utmSource,
+      utmMedium: campaign.utmMedium,
+      utmCampaign: campaign.utmCampaign,
+      cpl: leadCost,
+    },
+    pipelineStage: 'new',
+    tags: ['Webhook Ingested', campaign.name],
+    notes: `Inbound lead captured from ${campaign.name}.`,
+    createdAt: now,
+    activityTimeline: [{
+      id: `act_${randomUUID()}`,
+      type: 'ingested',
+      title: `${campaign.platform} Webhook Lead Captured`,
+      description: `Captured from campaign "${campaign.name}".`,
+      timestamp: now,
+    }],
+  };
+  const leadsCount = campaign.leadsCount + 1;
+  const spend = campaign.spend + leadCost;
+  const nextState: AppState = {
+    ...state,
+    leads: [lead, ...state.leads],
+    campaigns: state.campaigns.map((item) => item.id === campaign.id ? {
+      ...item,
+      leadsCount,
+      spend,
+      cpl: spend / leadsCount,
+      revenue: item.revenue + lead.dealValue,
+      lastLeadAt: now,
+    } : item),
+    webhookEvents: [...webhookEvents, dedupeKey],
+  };
+
+  try {
+    writeAppState(nextState);
+    res.status(201).json({ success: true, duplicate: false, lead, campaign: nextState.campaigns.find((item) => item.id === campaign.id) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Unable to persist webhook lead' });
+  }
 });
 
 // Google Maps Lead Scraper Endpoint
