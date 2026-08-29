@@ -65,7 +65,7 @@ function readStoredUser(): AuthUser | null {
   return null;
 }
 
-function writeStoredUser(user: AuthUser): void {
+export function writeStoredUser(user: AuthUser): void {
   localStorage.setItem(userKey, JSON.stringify(user));
   localStorage.setItem(authTokenKey, `demo-${user.email}`);
 }
@@ -97,12 +97,13 @@ export async function createSession(email: string): Promise<AuthUser> {
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
+  const fallbackUser: AuthUser = { email: 'google-user@demo.local', name: 'Google User' };
+  writeStoredUser(fallbackUser);
+
   try {
     await signInWithRedirect(auth, googleProvider);
-    return { email: 'google-user@demo.local', name: 'Google User' };
+    return fallbackUser;
   } catch {
-    const fallbackUser: AuthUser = { email: 'google-user@demo.local', name: 'Google User' };
-    writeStoredUser(fallbackUser);
     return fallbackUser;
   }
 }

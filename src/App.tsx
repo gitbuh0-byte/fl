@@ -163,9 +163,10 @@ export function App() {
   };
 
   const handleGoogleLogin = async () => {
-    await signInWithGoogle();
+    const user = await signInWithGoogle();
+    localStorage.setItem('omnibiz-user', JSON.stringify(user));
+    localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
     setIsAuthenticated(true);
-    localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'google-session');
     setCurrentView('dashboard');
   };
 
