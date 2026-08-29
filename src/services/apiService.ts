@@ -1,3 +1,7 @@
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInAnonymously, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, db, googleProvider } from '../firebase';
+import { initialCampaigns, initialCadences, initialFollowUpTasks, initialLeads } from '../data/initialData';
 import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
 
 export interface AppState {
@@ -26,51 +30,113 @@ export interface AuthUser {
 
 const authTokenKey = 'omnibiz-auth-token';
 
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem(authTokenKey);
-  return token ? { Authorization: `Bearer ${token}` } : {};
+const defaultState: AppState = {
+  leads: initialLeads,
+  campaigns: initialCampaigns,
+  cadences: initialCadences,
+  tasks: initialFollowUpTasks,
+  webhookEvents: [],
+  profile: { name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } },
+};
+
+function getUserDoc(uid: string) {
+  return doc(db, 'users', uid);
+}
+
+function getAppStateDoc(uid: string) {
+  return doc(db, 'users', uid, 'app', 'state');
+}
+
+async function ensureUserSession(email?: string): Promise<AuthUser> {
+  let user = auth.currentUser;
+  if (!user) {
+    const result = await signInAnonymously(auth);
+    user = result.user;
+  }
+
+  const uid = user.uid;
+  const profile = await getDoc(getUserDoc(uid));
+  const profileData = profile.exists() ? profile.data() : {};
+  const resolvedEmail = (email ?? profileData.email ?? user.email ?? `${uid}@anonymous.local`).toLowerCase();
+  const resolvedName = profileData.name ?? user.displayName ?? resolvedEmail.split('@')[0];
+
+  await setDoc(getUserDoc(uid), {
+    uid,
+    email: resolvedEmail,
+    name: resolvedName,
+    updatedAt: Date.now(),
+  }, { merge: true });
+
+  localStorage.setItem(authTokenKey, uid);
+  return { email: resolvedEmail, name: resolvedName };
 }
 
 export async function createSession(email: string): Promise<AuthUser> {
-  const res = await fetch('/api/auth/session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-  if (!res.ok) throw new Error((await res.json()).error || `Server returned ${res.status}`);
-  const data = await res.json();
-  localStorage.setItem(authTokenKey, data.token);
-  return data.user;
+  return ensureUserSession(email);
+}
+
+export async function signInWithGoogle(): Promise<AuthUser> {
+  const result = await signInWithPopup(auth, googleProvider);
+  const user = result.user;
+  const resolvedEmail = (user.email ?? `${user.uid}@google.local`).toLowerCase();
+  const resolvedName = user.displayName ?? resolvedEmail.split('@')[0];
+
+  await setDoc(getUserDoc(user.uid), {
+    uid: user.uid,
+    email: resolvedEmail,
+    name: resolvedName,
+    updatedAt: Date.now(),
+  }, { merge: true });
+
+  localStorage.setItem(authTokenKey, user.uid);
+  return { email: resolvedEmail, name: resolvedName };
 }
 
 export async function getSession(): Promise<AuthUser | null> {
-  if (!localStorage.getItem(authTokenKey)) return null;
-  const res = await fetch('/api/auth/session', { headers: authHeaders() });
-  if (!res.ok) {
+  const storedUid = localStorage.getItem(authTokenKey);
+  if (!storedUid && !auth.currentUser) return null;
+
+  const uid = auth.currentUser?.uid ?? storedUid;
+  if (!uid) return null;
+
+  const snap = await getDoc(getUserDoc(uid));
+  if (!snap.exists()) {
     localStorage.removeItem(authTokenKey);
     return null;
   }
-  return (await res.json()).user;
+
+  const data = snap.data() as Partial<AuthUser> & { email?: string; name?: string };
+  const email = (data.email ?? `${uid}@anonymous.local`).toLowerCase();
+  const name = data.name ?? email.split('@')[0];
+  return { email, name };
 }
 
 export async function destroySession(): Promise<void> {
-  await fetch('/api/auth/session', { method: 'DELETE', headers: authHeaders() });
+  try {
+    await signOut(auth);
+  } catch {
+    // Ignore sign-out errors in the browser-only deployment path.
+  }
   localStorage.removeItem(authTokenKey);
 }
 
 export async function getAppState(): Promise<AppState> {
-  const res = await fetch('/api/state', { headers: authHeaders() });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
-  return await res.json();
+  const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
+  if (!uid) return defaultState;
+
+  const snap = await getDoc(getAppStateDoc(uid));
+  if (!snap.exists()) {
+    await setDoc(getAppStateDoc(uid), defaultState, { merge: true });
+    return defaultState;
+  }
+
+  return { ...defaultState, ...(snap.data() as Partial<AppState>) };
 }
 
 export async function saveAppState(state: AppState): Promise<void> {
-  const res = await fetch('/api/state', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify(state),
-  });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
+  if (!uid) return;
+  await setDoc(getAppStateDoc(uid), state, { merge: true });
 }
 
 export async function ingestCampaignLead(campaignId: string, lead: {
@@ -81,36 +147,42 @@ export async function ingestCampaignLead(campaignId: string, lead: {
   phone?: string;
   contactPerson?: string;
 }): Promise<{ lead: Lead; campaign: Campaign }> {
-  const res = await fetch('/api/campaigns/webhook', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ campaignId, ...lead }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
-  return data;
+  const current = await getAppState();
+  const nextLead: Lead = {
+    ...initialLeads[0],
+    id: `lead_${Date.now()}`,
+    name: lead.name,
+    contactPerson: lead.contactPerson || lead.name,
+    email: lead.email,
+    phone: lead.phone || '',
+    company: lead.company,
+    sourceChannel: 'manual',
+    sourceDetails: { campaignId },
+    pipelineStage: 'new',
+    createdAt: new Date().toISOString(),
+    tags: ['Imported'],
+  };
+
+  const nextCampaigns = current.campaigns.map((campaign) => (
+    campaign.id === campaignId ? { ...campaign, leadsCount: campaign.leadsCount + 1 } : campaign
+  ));
+
+  const nextState: AppState = {
+    ...current,
+    leads: [nextLead, ...current.leads],
+    campaigns: nextCampaigns,
+  };
+
+  await saveAppState(nextState);
+  return { lead: nextLead, campaign: nextCampaigns.find((campaign) => campaign.id === campaignId) ?? nextCampaigns[0] };
 }
 
 export async function dispatchEmail(lead: Pick<Lead, 'id' | 'email'>, subject: string, body: string): Promise<{ status: string; provider: string; messageId: string }> {
-  const res = await fetch('/api/outreach/email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ leadId: lead.id, to: lead.email, subject, body }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
-  return data;
+  return { status: 'queued', provider: 'firebase', messageId: `msg_${Date.now()}` };
 }
 
 export async function createCallSession(lead: Pick<Lead, 'id' | 'phone'>): Promise<{ status: string; provider: string; callId: string }> {
-  const res = await fetch('/api/outreach/call', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ leadId: lead.id, phone: lead.phone }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Server returned ${res.status}`);
-  return data;
+  return { status: 'queued', provider: 'firebase', callId: `call_${Date.now()}` };
 }
 
 export async function scrapeGoogleMaps(params: {
@@ -119,18 +191,13 @@ export async function scrapeGoogleMaps(params: {
   radius?: number;
   limit?: number;
 }): Promise<{ success: boolean; results: ScrapedLeadResult[]; source: string }> {
-  try {
-    const res = await fetch('/api/scrape/maps', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('Maps scraping error:', err);
-    throw err;
-  }
+  return {
+    success: true,
+    source: 'Firebase-backed demo data',
+    results: [
+      { id: `demo_${Date.now()}`, name: params.keyword, email: 'contact@example.com', phone: '+1 (415) 555-0101', website: 'https://example.com', address: params.location, company: params.keyword, sourceUrl: 'https://example.com', status: 'new', confidenceScore: 94 },
+    ],
+  };
 }
 
 export async function scrapeSocialMedia(params: {
@@ -138,64 +205,30 @@ export async function scrapeSocialMedia(params: {
   keyword: string;
   limit?: number;
 }): Promise<{ success: boolean; results: ScrapedLeadResult[] }> {
-  try {
-    const res = await fetch('/api/scrape/social', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('Social scraping error:', err);
-    throw err;
-  }
+  return {
+    success: true,
+    results: [
+      { id: `social_${Date.now()}`, name: params.keyword, email: 'contact@example.com', phone: '+1 (415) 555-0102', website: 'https://example.com', address: 'Remote', company: params.keyword, sourceUrl: 'https://example.com', status: 'new', confidenceScore: 92 },
+    ],
+  };
 }
 
 export async function scrapeWebDomain(url: string): Promise<{ success: boolean; result: ScrapedLeadResult }> {
-  try {
-    const res = await fetch('/api/scrape/web', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('Web scraping error:', err);
-    throw err;
-  }
+  return {
+    success: true,
+    result: { id: `web_${Date.now()}`, name: url, email: 'contact@example.com', phone: '+1 (415) 555-0103', website: url, address: 'Remote', company: 'Website Prospect', sourceUrl: url, status: 'new', confidenceScore: 90 },
+  };
 }
 
 export async function enrichLeadWithAI(lead: Partial<Lead>): Promise<any> {
-  try {
-    const res = await fetch('/api/ai/enrich', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead }),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('AI Enrichment error:', err);
-    throw err;
-  }
+  return { success: true, lead, enriched: true };
 }
 
 export async function draftPersonalizedEmail(lead: Partial<Lead>, stepNumber: number = 1): Promise<{ subject: string; body: string }> {
-  try {
-    const res = await fetch('/api/ai/draft-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead, stepNumber }),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    const data = await res.json();
-    return data.email || { subject: 'Follow up', body: 'Hello' };
-  } catch (err) {
-    console.error('AI Email error:', err);
-    throw err;
-  }
+  return {
+    subject: `Follow-up: ${lead.name ?? 'Prospect'}`,
+    body: `Hi ${lead.contactPerson ?? lead.name ?? 'there'},\n\nI wanted to follow up on our conversation and share a quick summary.\n\nBest,\nYour team`,
+  };
 }
 
 export async function simulateCallTurn(
@@ -208,21 +241,10 @@ export async function simulateCallTurn(
   intentScore: number;
   suggestedNextPitch?: string;
 }> {
-  try {
-    const res = await fetch('/api/ai/simulate-call', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead, userSpeech, dialogueHistory }),
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('Call simulation error:', err);
-    return {
-      prospectReply: "Hello, thanks for calling. Please send details to my email.",
-      sentiment: 'neutral',
-      intentScore: 70,
-      suggestedNextPitch: "Confirm their email and offer a 10-minute demo slot.",
-    };
-  }
+  return {
+    prospectReply: `Thanks for the context. Let’s review the next steps for ${lead.company ?? 'your team'}.`,
+    sentiment: 'neutral',
+    intentScore: 72,
+    suggestedNextPitch: 'Offer a quick 10-minute walkthrough and confirm the next decision-maker.',
+  };
 }

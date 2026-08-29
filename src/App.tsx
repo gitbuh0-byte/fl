@@ -17,7 +17,7 @@ import {
   initialFollowUpTasks 
 } from './data/initialData';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState } from './services/apiService';
+import { createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -126,6 +126,12 @@ export function App() {
 
   const handleLogin = async (email: string) => {
     await createSession(email);
+    setIsAuthenticated(true);
+    setCurrentView('dashboard');
+  };
+
+  const handleGoogleLogin = async () => {
+    await signInWithGoogle();
     setIsAuthenticated(true);
     setCurrentView('dashboard');
   };
@@ -300,7 +306,7 @@ export function App() {
           sampleLeads={leads}
         />
       ) : currentView === 'auth' || !isAuthenticated ? (
-        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} />
+        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onGoogleLogin={handleGoogleLogin} />
       ) : (
         isProfileOpen ? (
           <ProfilePage profile={profile} onSaveProfile={handleSaveProfile} onClose={() => setIsProfileOpen(false)} />
