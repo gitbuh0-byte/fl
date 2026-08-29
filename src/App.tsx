@@ -50,7 +50,6 @@ export function App() {
   const [isStateHydrated, setIsStateHydrated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('omnibiz-auth-token')));
   const [profile, setProfile] = useState<ProfileSettings>({ name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } });
-  const hasStoredSession = Boolean(localStorage.getItem('omnibiz-auth-token'));
 
   // Modal / Drawer Selection State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -101,7 +100,13 @@ export function App() {
         }
       })
       .catch(() => setCurrentView('auth'));
-  }, []);
+  }, [currentView]);
+
+  useEffect(() => {
+    if (isAuthenticated && (currentView === 'landing' || currentView === 'auth')) {
+      setCurrentView('dashboard');
+    }
+  }, [isAuthenticated, currentView]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -322,12 +327,12 @@ export function App() {
       )}
 
       {/* Main Bento Canvas Area */}
-      {currentView === 'landing' ? (
+      {currentView === 'landing' && !isAuthenticated ? (
         <LandingPage
           onEnterApp={(targetView) => setCurrentView(targetView || 'auth')}
           sampleLeads={leads}
         />
-      ) : currentView === 'auth' || (!isAuthenticated && !hasStoredSession) ? (
+      ) : !isAuthenticated ? (
         <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onGoogleLogin={handleGoogleLogin} />
       ) : (
         isProfileOpen ? (
