@@ -25,9 +25,11 @@ export function App() {
   const [dashboardInstance, setDashboardInstance] = useState(0);
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const savedView = sessionStorage.getItem('omnibiz-current-view');
-    return localStorage.getItem('omnibiz-auth-token') && (savedView === 'auth' || savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns')
-      ? savedView
-      : 'landing';
+    const hasSession = Boolean(localStorage.getItem('omnibiz-auth-token') || localStorage.getItem('omnibiz-user'));
+    if (hasSession) {
+      return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns' ? savedView : 'dashboard';
+    }
+    return 'landing';
   });
 
   useEffect(() => {
@@ -73,11 +75,11 @@ export function App() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('omnibiz-auth-token');
-    if (storedToken) {
+    const storedUser = localStorage.getItem('omnibiz-user');
+
+    if (storedToken || storedUser) {
       setIsAuthenticated(true);
-      if (currentView === 'landing' || currentView === 'auth') {
-        setCurrentView('dashboard');
-      }
+      setCurrentView((prev) => prev === 'landing' || prev === 'auth' ? 'dashboard' : prev);
       return;
     }
 
@@ -95,12 +97,16 @@ export function App() {
         if (user) {
           setIsAuthenticated(true);
           setCurrentView('dashboard');
-        } else if (currentView !== 'landing') {
-          setCurrentView('auth');
+        } else {
+          setIsAuthenticated(false);
+          setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? prev : 'landing'));
         }
       })
-      .catch(() => setCurrentView('auth'));
-  }, [currentView]);
+      .catch(() => {
+        setIsAuthenticated(false);
+        setCurrentView('landing');
+      });
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && (currentView === 'landing' || currentView === 'auth')) {
