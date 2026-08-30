@@ -10,14 +10,8 @@ import { LeadDetailModal } from './components/LeadDetailModal';
 import { CreateLeadModal } from './components/CreateLeadModal';
 import { ProfilePage } from './components/ProfilePage';
 import { AuthPage } from './components/AuthPage';
-import { 
-  initialLeads, 
-  initialCampaigns, 
-  initialCadences, 
-  initialFollowUpTasks 
-} from './data/initialData';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { completeGoogleRedirectSignIn, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
+import { completeGoogleRedirectSignIn, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -45,13 +39,13 @@ export function App() {
   };
 
   // Application Data State
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
-  const [cadences, setCadences] = useState(initialCadences);
-  const [tasks, setTasks] = useState<FollowUpTask[]>(initialFollowUpTasks);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [cadences, setCadences] = useState<import('./types').EmailCadence[]>([]);
+  const [tasks, setTasks] = useState<FollowUpTask[]>([]);
   const [isStateHydrated, setIsStateHydrated] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('omnibiz-auth-token')));
-  const [profile, setProfile] = useState<ProfileSettings>({ name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } });
+  const [profile, setProfile] = useState<ProfileSettings>(() => createDefaultProfileSettings());
 
   // Modal / Drawer Selection State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -65,6 +59,18 @@ export function App() {
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedProfile = localStorage.getItem('omnibiz-profile');
+    if (storedProfile) {
+      try {
+        const parsed = JSON.parse(storedProfile) as Partial<ProfileSettings>;
+        setProfile(createDefaultProfileSettings(parsed));
+      } catch {
+        setProfile(createDefaultProfileSettings());
+      }
+    }
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -124,12 +130,16 @@ export function App() {
         setCadences(savedState.cadences);
         setTasks(savedState.tasks);
         if (savedState.profile) {
-          setProfile((currentProfile) => ({
+          setProfile((currentProfile) => createDefaultProfileSettings({
             ...currentProfile,
             ...savedState.profile,
             notifications: {
               ...currentProfile.notifications,
-              ...savedState.profile?.notifications,
+              ...savedState.profile.notifications,
+            },
+            integrations: {
+              ...currentProfile.integrations,
+              ...savedState.profile.integrations,
             },
           }));
         }
@@ -180,7 +190,8 @@ export function App() {
   };
 
   const handleSaveProfile = (nextProfile: ProfileSettings) => {
-    setProfile(nextProfile);
+    const normalizedProfile = createDefaultProfileSettings(nextProfile);
+    setProfile(normalizedProfile);
     showToast('Profile changes saved.');
   };
 

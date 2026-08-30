@@ -26,7 +26,20 @@ type AppState = {
   profile?: {
     name: string;
     email: string;
+    role: string;
+    company: string;
     notifications: { leadAlerts: boolean; taskReminders: boolean; weeklyDigest: boolean };
+    integrations: {
+      googleMapsApiKey: string;
+      geminiApiKey: string;
+      openAiApiKey: string;
+      anthropicApiKey: string;
+      linkedinApiKey: string;
+      instagramApiKey: string;
+      twitterApiKey: string;
+      facebookApiKey: string;
+      tiktokApiKey: string;
+    };
   };
 };
 
@@ -40,12 +53,29 @@ function readAppState(): AppState {
   }
 
   return {
-    leads: initialLeads,
-    campaigns: initialCampaigns,
-    cadences: initialCadences,
-    tasks: initialFollowUpTasks,
+    leads: [],
+    campaigns: [],
+    cadences: [],
+    tasks: [],
     webhookEvents: [],
-    profile: { name: 'Alex Sterling', email: 'alex@omnibiz.co', notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false } },
+    profile: {
+      name: 'Alex Sterling',
+      email: 'alex@omnibiz.co',
+      role: 'Revenue operations lead',
+      company: 'OmniBiz',
+      notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false },
+      integrations: {
+        googleMapsApiKey: '',
+        geminiApiKey: '',
+        openAiApiKey: '',
+        anthropicApiKey: '',
+        linkedinApiKey: '',
+        instagramApiKey: '',
+        twitterApiKey: '',
+        facebookApiKey: '',
+        tiktokApiKey: '',
+      },
+    },
   };
 }
 
@@ -169,10 +199,23 @@ app.put('/api/state', requireAuth, (req, res) => {
     profile: req.body?.profile && typeof req.body.profile.name === 'string' && req.body.profile.name.trim() && typeof req.body.profile.email === 'string' && req.body.profile.email.includes('@') ? {
       name: req.body.profile.name.trim().slice(0, 120),
       email: req.body.profile.email.trim().toLowerCase().slice(0, 254),
+      role: typeof req.body.profile.role === 'string' ? req.body.profile.role.trim().slice(0, 120) : 'Revenue operations lead',
+      company: typeof req.body.profile.company === 'string' ? req.body.profile.company.trim().slice(0, 120) : 'OmniBiz',
       notifications: {
         leadAlerts: req.body.profile.notifications?.leadAlerts !== false,
         taskReminders: req.body.profile.notifications?.taskReminders !== false,
         weeklyDigest: req.body.profile.notifications?.weeklyDigest === true,
+      },
+      integrations: {
+        googleMapsApiKey: typeof req.body.profile.integrations?.googleMapsApiKey === 'string' ? req.body.profile.integrations.googleMapsApiKey : '',
+        geminiApiKey: typeof req.body.profile.integrations?.geminiApiKey === 'string' ? req.body.profile.integrations.geminiApiKey : '',
+        openAiApiKey: typeof req.body.profile.integrations?.openAiApiKey === 'string' ? req.body.profile.integrations.openAiApiKey : '',
+        anthropicApiKey: typeof req.body.profile.integrations?.anthropicApiKey === 'string' ? req.body.profile.integrations.anthropicApiKey : '',
+        linkedinApiKey: typeof req.body.profile.integrations?.linkedinApiKey === 'string' ? req.body.profile.integrations.linkedinApiKey : '',
+        instagramApiKey: typeof req.body.profile.integrations?.instagramApiKey === 'string' ? req.body.profile.integrations.instagramApiKey : '',
+        twitterApiKey: typeof req.body.profile.integrations?.twitterApiKey === 'string' ? req.body.profile.integrations.twitterApiKey : '',
+        facebookApiKey: typeof req.body.profile.integrations?.facebookApiKey === 'string' ? req.body.profile.integrations.facebookApiKey : '',
+        tiktokApiKey: typeof req.body.profile.integrations?.tiktokApiKey === 'string' ? req.body.profile.integrations.tiktokApiKey : '',
       },
     } : currentState.profile,
   };
