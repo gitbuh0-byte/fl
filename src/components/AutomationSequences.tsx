@@ -41,7 +41,7 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
   onSelectLeadById,
   onLaunchDialerForLead,
 }) => {
-  const [selectedCadence, setSelectedCadence] = useState<EmailCadence>(emailCadences[0]);
+  const [selectedCadence, setSelectedCadence] = useState<EmailCadence | null>(emailCadences[0] ?? null);
   const [activeSubTab, setActiveSubTab] = useState<'cadences' | 'dialer_studio' | 'task_queue'>('cadences');
   const [testLeadName, setTestLeadName] = useState('Dr. Marcus Vance');
   const [testLeadCompany, setTestLeadCompany] = useState('Apex Dental Care');
@@ -55,6 +55,8 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
 
   const pendingTasks = followUpTasks.filter(t => !t.completed);
   const completedTasks = followUpTasks.filter(t => t.completed);
+  const hasCadences = emailCadences.length > 0;
+  const currentCadence = selectedCadence ?? emailCadences[0] ?? null;
 
   const handleCreateTask = (event: React.FormEvent) => {
     event.preventDefault();
@@ -145,83 +147,95 @@ export const AutomationSequences: React.FC<AutomationSequencesProps> = ({
 
       {/* SUBTAB 1: EMAIL CADENCES */}
       {activeSubTab === 'cadences' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left: Cadences List */}
-          <div className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 font-mono">Active Automated Sequences</h2>
-            {emailCadences.map((cad) => (
-              <div
-                key={cad.id}
-                onClick={() => setSelectedCadence(cad)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                  selectedCadence.id === cad.id
-                    ? 'bg-[#141824] border-blue-500 shadow-xl'
-                    : 'bg-[#111] border-[#222] hover:border-[#333]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#1f1f1f] text-blue-400 border border-[#2a2a2a] font-mono">
-                    {cad.targetChannel}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-emerald-400">{cad.openRate}% Open</span>
-                </div>
-                <h3 className="text-sm font-bold text-white mt-2">{cad.name}</h3>
-                <p className="text-xs text-gray-400 mt-1">{cad.description}</p>
-                <div className="flex items-center justify-between mt-3 text-xs text-gray-500 pt-2 border-t border-[#222] font-mono">
-                  <span>{cad.steps.length} Automated Steps</span>
-                  <span><strong className="text-white">{cad.activeEnrollments}</strong> Leads Enrolled</span>
-                </div>
+        <div className="grid grid-cols-1 gap-4">
+          {!hasCadences ? (
+            <div className="bg-[#111] rounded-2xl p-8 border border-dashed border-[#2b2b2b] text-center shadow-xl">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600/10 text-blue-400">
+                <Mail className="w-5 h-5" />
               </div>
-            ))}
-          </div>
-
-          {/* Right: Sequence Steps Visualizer */}
-          <div className="lg:col-span-2 bg-[#111] rounded-2xl p-6 border border-[#222] shadow-xl space-y-6">
-            <div className="flex items-center justify-between border-b border-[#222] pb-4">
-              <div>
-                <h3 className="text-base font-bold text-white">{selectedCadence.name}</h3>
-                <p className="text-xs text-gray-400">{selectedCadence.description}</p>
-              </div>
-              <div className="flex items-center gap-3 text-xs font-mono">
-                <span className="text-gray-400">Open Rate: <strong className="text-emerald-400">{selectedCadence.openRate}%</strong></span>
-                <span className="text-gray-400">Reply Rate: <strong className="text-blue-400">{selectedCadence.replyRate}%</strong></span>
-              </div>
+              <h2 className="text-lg font-bold text-white">No email cadences yet</h2>
+              <p className="mt-2 text-sm text-gray-400">Create a follow-up sequence and it will appear here as soon as it is activated.</p>
             </div>
-
-            {/* Sequence Steps */}
-            <div className="space-y-4">
-              {selectedCadence.steps.map((step) => (
-                <div
-                  key={step.stepNumber}
-                  className="bg-[#161616] rounded-xl p-4 border border-[#262626] space-y-3 relative"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="h-6 w-6 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/40 flex items-center justify-center text-xs font-bold font-mono">
-                        {step.stepNumber}
+          ) : (
+            <>
+              {/* Left: Cadences List */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 font-mono">Active Automated Sequences</h2>
+                {emailCadences.map((cad) => (
+                  <div
+                    key={cad.id}
+                    onClick={() => setSelectedCadence(cad)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                      currentCadence?.id === cad.id
+                        ? 'bg-[#141824] border-blue-500 shadow-xl'
+                        : 'bg-[#111] border-[#222] hover:border-[#333]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#1f1f1f] text-blue-400 border border-[#2a2a2a] font-mono">
+                        {cad.targetChannel}
                       </span>
-                      <span className="text-xs font-bold text-white">
-                        {step.delayDays === 0 ? 'Trigger Immediately (<2m of scrape/ingest)' : `Delay: ${step.delayDays} Days After Step ${step.stepNumber - 1}`}
-                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">{cad.openRate}% Open</span>
                     </div>
-
-                    <span className="text-[11px] text-gray-500 font-mono">
-                      Dynamic Personalization Active
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs">
-                    <div className="text-gray-400 font-mono">
-                      Subject: <strong className="text-gray-200">{renderSamplePreview(step.subject)}</strong>
-                    </div>
-                    <div className="bg-[#111] p-3.5 rounded-xl border border-[#222] text-gray-300 whitespace-pre-line font-mono text-[11px] leading-relaxed">
-                      {renderSamplePreview(step.bodyTemplate)}
+                    <h3 className="text-sm font-bold text-white mt-2">{cad.name}</h3>
+                    <p className="text-xs text-gray-400 mt-1">{cad.description}</p>
+                    <div className="flex items-center justify-between mt-3 text-xs text-gray-500 pt-2 border-t border-[#222] font-mono">
+                      <span>{cad.steps.length} Automated Steps</span>
+                      <span><strong className="text-white">{cad.activeEnrollments}</strong> Leads Enrolled</span>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Right: Sequence Steps Visualizer */}
+              <div className="bg-[#111] rounded-2xl p-6 border border-[#222] shadow-xl space-y-6">
+                <div className="flex items-center justify-between border-b border-[#222] pb-4">
+                  <div>
+                    <h3 className="text-base font-bold text-white">{currentCadence?.name}</h3>
+                    <p className="text-xs text-gray-400">{currentCadence?.description}</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-mono">
+                    <span className="text-gray-400">Open Rate: <strong className="text-emerald-400">{currentCadence?.openRate}%</strong></span>
+                    <span className="text-gray-400">Reply Rate: <strong className="text-blue-400">{currentCadence?.replyRate}%</strong></span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* Sequence Steps */}
+                <div className="space-y-4">
+                  {currentCadence?.steps.map((step) => (
+                    <div
+                      key={step.stepNumber}
+                      className="bg-[#161616] rounded-xl p-4 border border-[#262626] space-y-3 relative"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="h-6 w-6 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/40 flex items-center justify-center text-xs font-bold font-mono">
+                            {step.stepNumber}
+                          </span>
+                          <span className="text-xs font-bold text-white">
+                            {step.delayDays === 0 ? 'Trigger Immediately (<2m of scrape/ingest)' : `Delay: ${step.delayDays} Days After Step ${step.stepNumber - 1}`}
+                          </span>
+                        </div>
+
+                        <span className="text-[11px] text-gray-500 font-mono">
+                          Dynamic Personalization Active
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs">
+                        <div className="text-gray-400 font-mono">
+                          Subject: <strong className="text-gray-200">{renderSamplePreview(step.subject)}</strong>
+                        </div>
+                        <div className="bg-[#111] p-3.5 rounded-xl border border-[#222] text-gray-300 whitespace-pre-line font-mono text-[11px] leading-relaxed">
+                          {renderSamplePreview(step.bodyTemplate)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

@@ -17,8 +17,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
   const [integrations, setIntegrations] = useState(profile.integrations);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSave = (event?: React.FormEvent | React.MouseEvent) => {
+    event?.preventDefault?.();
     onSaveProfile(createDefaultProfileSettings({ name, email, role, company, notifications, integrations }));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
@@ -69,6 +69,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
               </div>
             ))}
           </div>
+          <button className="profile-save" type="button" onClick={handleSave}><Save size={15} /> {saved ? 'Provider access updated' : 'Update provider access'}</button>
           <div className="security-row"><Mail size={15} /><span><b>Verified work email</b><small>{email}</small></span><strong>Active</strong></div>
           <div className="security-row"><ShieldCheck size={15} /><span><b>Workspace protection</b><small>Keys stay in your saved profile settings</small></span><button type="button">Protected</button></div>
         </section>
