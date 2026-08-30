@@ -47,6 +47,19 @@ export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('omnibiz-auth-token')));
   const [profile, setProfile] = useState<ProfileSettings>(() => createDefaultProfileSettings());
 
+  const syncProfileFromUser = (user: { name?: string; email?: string } | null) => {
+    if (!user) return;
+
+    const nextName = user.name?.trim() || profile.name || user.email?.split('@')[0] || 'Workspace Owner';
+    const nextEmail = user.email?.trim() || profile.email || '';
+
+    setProfile((current) => createDefaultProfileSettings({
+      ...current,
+      name: nextName,
+      email: nextEmail,
+    }));
+  };
+
   // Modal / Drawer Selection State
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -65,9 +78,21 @@ export function App() {
     if (storedProfile) {
       try {
         const parsed = JSON.parse(storedProfile) as Partial<ProfileSettings>;
-        setProfile(createDefaultProfileSettings(parsed));
+        const hydrated = createDefaultProfileSettings(parsed);
+        setProfile(hydrated);
+        return;
       } catch {
         setProfile(createDefaultProfileSettings());
+      }
+    }
+
+    const storedUser = localStorage.getItem('omnibiz-user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser) as { name?: string; email?: string };
+        syncProfileFromUser(parsed);
+      } catch {
+        // ignore malformed user session data
       }
     }
   }, []);
@@ -166,8 +191,9 @@ export function App() {
   };
 
   const handleLogin = async (email: string) => {
-    await createSession(email);
+    const user = await createSession(email);
     setIsAuthenticated(true);
+    syncProfileFromUser(user);
     localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'session');
     setCurrentView('dashboard');
   };
@@ -176,6 +202,7 @@ export function App() {
     const user = await signInWithGoogle();
     localStorage.setItem('omnibiz-user', JSON.stringify(user));
     localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
+    syncProfileFromUser(user);
     setIsAuthenticated(true);
     setCurrentView('dashboard');
   };
@@ -342,6 +369,7 @@ export function App() {
           setSearchQuery={setSearchQuery}
           onOpenProfile={() => setIsProfileOpen(true)}
           onLogout={() => void handleLogout()}
+          profileName={profile.name || profile.email || 'Workspace Owner'}
         />
       )}
 

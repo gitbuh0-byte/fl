@@ -59,10 +59,10 @@ function readAppState(): AppState {
     tasks: [],
     webhookEvents: [],
     profile: {
-      name: 'Alex Sterling',
-      email: 'alex@omnibiz.co',
-      role: 'Revenue operations lead',
-      company: 'OmniBiz',
+      name: '',
+      email: '',
+      role: '',
+      company: '',
       notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false },
       integrations: {
         googleMapsApiKey: '',
@@ -125,6 +125,18 @@ app.post('/api/auth/session', (req, res) => {
 
   const token = randomUUID();
   const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+  const currentState = readAppState();
+  const nextState = {
+    ...currentState,
+    profile: {
+      ...currentState.profile,
+      name,
+      email,
+      role: currentState.profile?.role || '',
+      company: currentState.profile?.company || '',
+    },
+  };
+  writeAppState(nextState);
   sessions.set(token, { email, name, expiresAt: Date.now() + SESSION_TTL_MS });
   res.json({ token, user: { email, name } });
 });

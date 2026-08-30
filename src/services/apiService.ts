@@ -71,10 +71,10 @@ function normalizeUser(user: Partial<AuthUser> | null | undefined): AuthUser | n
 
 export function createDefaultProfileSettings(overrides: Partial<ProfileSettings> = {}): ProfileSettings {
   const defaults: ProfileSettings = {
-    name: 'Alex Sterling',
-    email: 'alex@omnibiz.co',
-    role: 'Revenue operations lead',
-    company: 'OmniBiz',
+    name: '',
+    email: '',
+    role: '',
+    company: '',
     notifications: {
       leadAlerts: true,
       taskReminders: true,
@@ -211,7 +211,7 @@ export async function createSession(email: string): Promise<AuthUser> {
     name: user.name,
   });
 
-  if (!storedProfile.email || storedProfile.email === 'alex@omnibiz.co') {
+  if (!storedProfile.email || storedProfile.email === 'alex@omnibiz.co' || storedProfile.email === 'google-user@demo.local' || storedProfile.name === 'Alex Sterling' || storedProfile.name === 'Google User') {
     writeStoredProfile(nextProfile);
   }
 

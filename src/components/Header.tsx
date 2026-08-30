@@ -13,6 +13,7 @@ interface HeaderProps {
   setSearchQuery?: (query: string) => void;
   onOpenProfile?: () => void;
   onLogout?: () => void;
+  profileName?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,11 +28,18 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchQuery,
   onOpenProfile,
   onLogout,
+  profileName = 'Workspace Owner',
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const query = searchQuery || internalSearch;
   const setQuery = setSearchQuery || setInternalSearch;
+  const initials = profileName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'U';
   const navItems = [
     { id: 'dashboard' as const, label: 'Overview', icon: <BarChart3 size={15} /> },
     { id: 'scraper' as const, label: 'Find leads', icon: <Globe2 size={15} />, badge: 'LIVE' },
@@ -57,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
           {onDownloadCSV && <button className="workspace-icon-action" onClick={onDownloadCSV} title="Export your leads as a CSV file" aria-label="Export your leads as a CSV file"><Download size={15} /></button>}
           <button className="workspace-scrape" onClick={onOpenQuickScrape ? onOpenQuickScrape : () => onNavigate('scraper')} title="Find new leads"><Globe2 size={15} /> <span>Find leads</span></button>
           <button className="workspace-add" onClick={onOpenNewLeadModal} title="Add a lead manually"><Plus size={15} /> <span>Add lead</span></button>
-          <button className="workspace-profile" onClick={onOpenProfile} title="Open profile">AS</button>
+          <button className="workspace-profile" onClick={onOpenProfile} title="Open profile">{initials}</button>
           {onLogout && <button className="workspace-icon-action" onClick={onLogout} title="Sign out of OmniBiz">Log out</button>}
         </div>
       </div>
