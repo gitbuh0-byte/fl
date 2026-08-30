@@ -384,8 +384,11 @@ export async function destroySession(): Promise<void> {
   } catch {
     // Ignore sign-out errors in the browser-only deployment path.
   }
+
   localStorage.removeItem(authTokenKey);
   localStorage.removeItem(userKey);
+  localStorage.removeItem(profileKey);
+  localStorage.removeItem(appStateKey);
 }
 
 export async function getAppState(): Promise<AppState> {

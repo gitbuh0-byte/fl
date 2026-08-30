@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Header } from './components/Header';
 import { LandingPage } from './components/LandingPage';
 import { DashboardFresh } from './components/DashboardFresh';
@@ -104,18 +104,26 @@ export function App() {
     }, 4000);
   };
 
+  const currentAuthStateRef = useRef(0);
+
   useEffect(() => {
+    const bootstrapId = ++currentAuthStateRef.current;
     const storedToken = localStorage.getItem('omnibiz-auth-token');
     const storedUser = localStorage.getItem('omnibiz-user');
 
     if (storedToken || storedUser) {
-      setIsAuthenticated(true);
-      setCurrentView((prev) => prev === 'landing' || prev === 'auth' ? 'dashboard' : prev);
+      if (bootstrapId === currentAuthStateRef.current) {
+        setIsAuthenticated(true);
+        setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? 'dashboard' : prev));
+      }
       return;
     }
 
+    let isCancelled = false;
+
     completeGoogleRedirectSignIn()
       .then((user) => {
+        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
         if (user) {
           setIsAuthenticated(true);
           setCurrentView('dashboard');
@@ -125,6 +133,7 @@ export function App() {
         return getSession();
       })
       .then((user) => {
+        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
         if (user) {
           setIsAuthenticated(true);
           setCurrentView('dashboard');
@@ -134,9 +143,14 @@ export function App() {
         }
       })
       .catch(() => {
+        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
         setIsAuthenticated(false);
         setCurrentView('landing');
       });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   useEffect(() => {
