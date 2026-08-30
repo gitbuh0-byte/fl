@@ -192,8 +192,6 @@ export function App() {
 
   const handleLogin = async (email: string, password: string) => {
     const user = await createSession(email, password);
-    localStorage.setItem('omnibiz-user', JSON.stringify(user));
-    localStorage.setItem('omnibiz-auth-token', `session-${user.email}`);
     setIsAuthenticated(true);
     syncProfileFromUser(user);
     setCurrentView('dashboard');
@@ -201,8 +199,6 @@ export function App() {
 
   const handleCreateAccount = async (fullName: string, email: string, password: string, confirmPassword?: string) => {
     const user = await createAccount(fullName, email, password, confirmPassword);
-    localStorage.setItem('omnibiz-user', JSON.stringify(user));
-    localStorage.setItem('omnibiz-auth-token', `session-${user.email}`);
     setIsAuthenticated(true);
     syncProfileFromUser(user);
     setCurrentView('dashboard');
@@ -215,7 +211,6 @@ export function App() {
       return;
     }
 
-    localStorage.setItem('omnibiz-user', JSON.stringify(user));
     localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
     syncProfileFromUser(user);
     setIsAuthenticated(true);

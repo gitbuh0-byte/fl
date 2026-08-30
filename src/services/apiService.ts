@@ -172,7 +172,6 @@ export function writeStoredUser(user: AuthUser): void {
   if (!normalized) return;
 
   localStorage.setItem(userKey, JSON.stringify(normalized));
-  localStorage.setItem(authTokenKey, `session-${normalized.email}`);
 }
 
 export function readStoredProfile(): ProfileSettings {
@@ -333,9 +332,15 @@ export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
   }
 }
 
+function hasBackendSessionToken(token: string | null): boolean {
+  if (!token) return false;
+  return !token.startsWith('session-') && !token.startsWith('google-') && token.length > 10;
+}
+
 export async function getSession(): Promise<AuthUser | null> {
   const token = localStorage.getItem(authTokenKey);
-  if (!token) return readStoredUser();
+  const storedUser = readStoredUser();
+  if (!hasBackendSessionToken(token)) return storedUser;
 
   try {
     const response = await apiRequest<{ user?: AuthUser }>(`/api/auth/session`, {
@@ -346,23 +351,23 @@ export async function getSession(): Promise<AuthUser | null> {
     });
 
     if (!response.user) {
-      return readStoredUser();
+      return storedUser;
     }
 
-    const user = normalizeUser(response.user) ?? readStoredUser();
+    const user = normalizeUser(response.user) ?? storedUser;
     if (user) {
       writeStoredUser(user);
     }
     return user;
   } catch {
-    return readStoredUser();
+    return storedUser;
   }
 }
 
 export async function destroySession(): Promise<void> {
   try {
     const token = localStorage.getItem(authTokenKey);
-    if (token) {
+    if (hasBackendSessionToken(token)) {
       await apiRequest<void>('/api/auth/session', {
         method: 'DELETE',
         headers: {
