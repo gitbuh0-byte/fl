@@ -190,8 +190,8 @@ export function App() {
     showToast(`Exported ${leads.length} leads to CSV successfully!`);
   };
 
-  const handleLogin = async (email: string) => {
-    const user = await createSession(email);
+  const handleLogin = async (email: string, password: string) => {
+    const user = await createSession(email, password);
     setIsAuthenticated(true);
     syncProfileFromUser(user);
     localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'session');
@@ -200,6 +200,11 @@ export function App() {
 
   const handleGoogleLogin = async () => {
     const user = await signInWithGoogle();
+    if (!user) {
+      showToast('Google sign-in was not completed. Please try again.');
+      return;
+    }
+
     localStorage.setItem('omnibiz-user', JSON.stringify(user));
     localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
     syncProfileFromUser(user);

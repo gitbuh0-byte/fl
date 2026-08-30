@@ -29,6 +29,7 @@ export interface ProfileSettings {
   email: string;
   role: string;
   company: string;
+  currency: string;
   notifications: {
     leadAlerts: boolean;
     taskReminders: boolean;
@@ -75,6 +76,7 @@ export function createDefaultProfileSettings(overrides: Partial<ProfileSettings>
     email: '',
     role: '',
     company: '',
+    currency: 'KSH',
     notifications: {
       leadAlerts: true,
       taskReminders: true,
@@ -96,6 +98,7 @@ export function createDefaultProfileSettings(overrides: Partial<ProfileSettings>
   return {
     ...defaults,
     ...overrides,
+    currency: overrides.currency || defaults.currency,
     notifications: {
       ...defaults.notifications,
       ...(overrides.notifications ?? {}),
@@ -192,15 +195,21 @@ function writeStoredState(state: AppState): void {
   localStorage.setItem(appStateKey, JSON.stringify(nextState));
 }
 
-export async function createSession(email: string): Promise<AuthUser> {
+export async function createSession(email: string, password: string): Promise<AuthUser> {
   const normalizedEmail = normalizeEmail(email);
+  const normalizedPassword = password.trim();
+
   if (!normalizedEmail) {
     throw new Error('A valid work email is required.');
   }
 
+  if (normalizedPassword.length < 8) {
+    throw new Error('Password must be at least 8 characters long.');
+  }
+
   const user: AuthUser = {
     email: normalizedEmail,
-    name: normalizeName(normalizedEmail.split('@')[0], 'User'),
+    name: normalizeName(normalizedEmail.split('@')[0], 'Workspace Owner'),
   };
 
   writeStoredUser(user);
@@ -209,25 +218,22 @@ export async function createSession(email: string): Promise<AuthUser> {
     ...storedProfile,
     email: normalizedEmail,
     name: user.name,
+    currency: storedProfile.currency || 'KSH',
   });
 
-  if (!storedProfile.email || storedProfile.email === 'alex@omnibiz.co' || storedProfile.email === 'google-user@demo.local' || storedProfile.name === 'Alex Sterling' || storedProfile.name === 'Google User') {
+  if (!storedProfile.email || !storedProfile.name || storedProfile.name === 'Workspace Owner') {
     writeStoredProfile(nextProfile);
   }
 
   return user;
 }
 
-export async function signInWithGoogle(): Promise<AuthUser> {
-  const fallbackUser: AuthUser = { email: 'google-user@demo.local', name: 'Google User' };
-  const normalized = normalizeUser(fallbackUser) ?? fallbackUser;
-  writeStoredUser(normalized);
-
+export async function signInWithGoogle(): Promise<AuthUser | null> {
   try {
     await signInWithRedirect(auth, googleProvider);
-    return normalized;
+    return readStoredUser();
   } catch {
-    return normalized;
+    return null;
   }
 }
 
@@ -240,7 +246,7 @@ export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
 
     const user = result.user;
     const resolvedEmail = normalizeEmail(user.email ?? `${user.uid}@google.local`);
-    const resolvedName = normalizeName(user.displayName ?? resolvedEmail.split('@')[0], 'Google User');
+    const resolvedName = normalizeName(user.displayName ?? resolvedEmail.split('@')[0], 'Workspace Owner');
     const resolvedUser: AuthUser = { email: resolvedEmail, name: resolvedName };
     writeStoredUser(resolvedUser);
     return resolvedUser;

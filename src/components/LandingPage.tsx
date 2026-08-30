@@ -73,7 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp, sampleLead
                   <div className="flow-card trigger-card"><span className="flow-icon orange-icon"><Globe2 size={15} /></span><div><b>New lead discovered</b><small>Google Maps / Austin, TX</small></div><span className="flow-more">···</span></div>
                   <div className="flow-card ai-card"><span className="flow-icon yellow-icon"><Sparkles size={15} /></span><div><b>AI enrichment</b><small>Score intent and write a pitch</small></div><span className="flow-more">···</span></div>
                   <div className="flow-card email-card"><span className="flow-icon black-icon"><Mail size={15} /></span><div><b>Send tailored email</b><small>Wait 2 days, then follow up</small></div><span className="flow-more">···</span></div>
-                  <div className="canvas-footer"><span><span className="avatar">AS</span> Alex Sterling</span><span>3 steps <ArrowRight size={13} /></span></div>
+                  <div className="canvas-footer"><span><span className="avatar">YO</span> Your workspace</span><span>3 steps <ArrowRight size={13} /></span></div>
                 </div>
               </div>
             </div>

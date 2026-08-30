@@ -13,13 +13,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
   const [email, setEmail] = useState(profile.email);
   const [role, setRole] = useState(profile.role);
   const [company, setCompany] = useState(profile.company);
+  const [currency, setCurrency] = useState(profile.currency || 'KSH');
   const [notifications, setNotifications] = useState(profile.notifications);
   const [integrations, setIntegrations] = useState(profile.integrations);
   const [saved, setSaved] = useState(false);
+  const initials = (name || email || 'Workspace Owner')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'W';
 
   const handleSave = (event?: React.FormEvent | React.MouseEvent) => {
     event?.preventDefault?.();
-    onSaveProfile(createDefaultProfileSettings({ name, email, role, company, notifications, integrations }));
+    onSaveProfile(createDefaultProfileSettings({ name, email, role, company, currency, notifications, integrations }));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2200);
   };
@@ -43,7 +50,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
   return (
     <main className="profile-page">
       <button className="profile-back" onClick={onClose}><ArrowLeft size={15} /> Back to workspace</button>
-      <div className="profile-heading"><div><span className="fresh-kicker">Workspace settings</span><h1>Your profile</h1><p>Manage account details, notification preferences, and live provider keys.</p></div><span className="profile-large-avatar">AS</span></div>
+      <div className="profile-heading"><div><span className="fresh-kicker">Workspace settings</span><h1>Your profile</h1><p>Manage account details, notification preferences, and live provider keys.</p></div><span className="profile-large-avatar">{initials}</span></div>
       <div className="profile-layout">
         <form className="profile-card profile-form" onSubmit={handleSave}>
           <div className="profile-card-heading"><span className="profile-icon"><UserRound size={17} /></span><div><h2>Personal details</h2><p>How your team sees you in OmniBiz.</p></div></div>
@@ -51,6 +58,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
           <label>Work email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
           <label>Role<input value={role} onChange={(event) => setRole(event.target.value)} /></label>
           <label>Company<input value={company} onChange={(event) => setCompany(event.target.value)} /></label>
+          <label>Currency<select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            <option value="KSH">KSH</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select></label>
           <button className="profile-save" type="submit"><Save size={15} /> {saved ? 'Changes saved' : 'Save changes'}</button>
         </form>
         <section className="profile-card">

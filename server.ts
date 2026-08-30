@@ -28,6 +28,7 @@ type AppState = {
     email: string;
     role: string;
     company: string;
+    currency: string;
     notifications: { leadAlerts: boolean; taskReminders: boolean; weeklyDigest: boolean };
     integrations: {
       googleMapsApiKey: string;
@@ -63,6 +64,7 @@ function readAppState(): AppState {
       email: '',
       role: '',
       company: '',
+      currency: 'KSH',
       notifications: { leadAlerts: true, taskReminders: true, weeklyDigest: false },
       integrations: {
         googleMapsApiKey: '',
@@ -119,8 +121,14 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/auth/session', (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
+
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'A valid work email is required' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
   }
 
   const token = randomUUID();
@@ -134,6 +142,7 @@ app.post('/api/auth/session', (req, res) => {
       email,
       role: currentState.profile?.role || '',
       company: currentState.profile?.company || '',
+      currency: currentState.profile?.currency || 'KSH',
     },
   };
   writeAppState(nextState);
@@ -213,6 +222,7 @@ app.put('/api/state', requireAuth, (req, res) => {
       email: req.body.profile.email.trim().toLowerCase().slice(0, 254),
       role: typeof req.body.profile.role === 'string' ? req.body.profile.role.trim().slice(0, 120) : 'Revenue operations lead',
       company: typeof req.body.profile.company === 'string' ? req.body.profile.company.trim().slice(0, 120) : 'OmniBiz',
+      currency: typeof req.body.profile.currency === 'string' && req.body.profile.currency.trim() ? req.body.profile.currency.trim().toUpperCase() : 'KSH',
       notifications: {
         leadAlerts: req.body.profile.notifications?.leadAlerts !== false,
         taskReminders: req.body.profile.notifications?.taskReminders !== false,
