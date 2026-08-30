@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { LandingPage } from './components/LandingPage';
 import { DashboardFresh } from './components/DashboardFresh';
@@ -11,7 +11,9 @@ import { CreateLeadModal } from './components/CreateLeadModal';
 import { ProfilePage } from './components/ProfilePage';
 import { AuthPage } from './components/AuthPage';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { completeGoogleRedirectSignIn, createAccount, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { createAccount, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -104,53 +106,27 @@ export function App() {
     }, 4000);
   };
 
-  const currentAuthStateRef = useRef(0);
-
   useEffect(() => {
-    const bootstrapId = ++currentAuthStateRef.current;
-    const storedToken = localStorage.getItem('omnibiz-auth-token');
-    const storedUser = localStorage.getItem('omnibiz-user');
-
-    if (storedToken || storedUser) {
-      if (bootstrapId === currentAuthStateRef.current) {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const user = {
+          email: firebaseUser.email ?? 'workspace@omnibiz.local',
+          name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Workspace Owner',
+        };
+        localStorage.setItem('omnibiz-auth-token', firebaseUser.uid);
+        localStorage.setItem('omnibiz-user', JSON.stringify(user));
         setIsAuthenticated(true);
         setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? 'dashboard' : prev));
+        return;
       }
-      return;
-    }
 
-    let isCancelled = false;
+      localStorage.removeItem('omnibiz-auth-token');
+      localStorage.removeItem('omnibiz-user');
+      setIsAuthenticated(false);
+      setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? prev : 'landing'));
+    });
 
-    completeGoogleRedirectSignIn()
-      .then((user) => {
-        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
-        if (user) {
-          setIsAuthenticated(true);
-          setCurrentView('dashboard');
-          return;
-        }
-
-        return getSession();
-      })
-      .then((user) => {
-        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
-        if (user) {
-          setIsAuthenticated(true);
-          setCurrentView('dashboard');
-        } else {
-          setIsAuthenticated(false);
-          setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? prev : 'landing'));
-        }
-      })
-      .catch(() => {
-        if (isCancelled || bootstrapId !== currentAuthStateRef.current) return;
-        setIsAuthenticated(false);
-        setCurrentView('landing');
-      });
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -225,7 +201,7 @@ export function App() {
       return;
     }
 
-    localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
+    localStorage.setItem('omnibiz-auth-token', auth.currentUser?.uid ?? `google-${user.email}`);
     localStorage.setItem('omnibiz-user', JSON.stringify(user));
     syncProfileFromUser(user);
     setIsAuthenticated(true);

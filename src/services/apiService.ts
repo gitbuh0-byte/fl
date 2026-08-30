@@ -1,5 +1,13 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getRedirectResult, signInWithRedirect, signOut } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithRedirect,
+  signOut,
+  updateProfile,
+} from 'firebase/auth';
 import { auth, db, googleProvider } from '../firebase';
 import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
 
@@ -59,58 +67,20 @@ export function validatePassword(password: string): string | null {
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  try {
-    const response = await fetch(path, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(init.headers ?? {}),
-      },
-    });
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  });
 
-    const payload = await response.json().catch(() => null) as { error?: string } | null;
-    if (!response.ok) {
-      throw new Error(payload?.error || 'Request failed.');
-    }
-
-    return payload as T;
-  } catch (error) {
-    if (path.startsWith('/api/auth/')) {
-      const demoEmail = typeof JSON.parse(localStorage.getItem('omnibiz-user') ?? 'null')?.email === 'string'
-        ? JSON.parse(localStorage.getItem('omnibiz-user') ?? 'null').email
-        : `demo-${Date.now()}@omnibiz.local`;
-
-      if (path.endsWith('/login') || path.endsWith('/signup')) {
-        const isSignup = path.endsWith('/signup');
-        const body = typeof init.body === 'string' ? JSON.parse(init.body) as Record<string, unknown> : {};
-        const email = typeof body.email === 'string' && body.email.includes('@') ? body.email.toLowerCase() : demoEmail;
-        const name = typeof body.fullName === 'string' && body.fullName.trim() ? body.fullName.trim() : email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-        const user: AuthUser = { email, name };
-        const token = `demo-${Math.random().toString(36).slice(2)}-${Date.now()}`;
-        const profile = createDefaultProfileSettings({
-          email,
-          name,
-          currency: 'KSH',
-        });
-
-        localStorage.setItem(authTokenKey, token);
-        writeStoredUser(user);
-        writeStoredProfile(profile);
-
-        return {
-          token,
-          user,
-          profile,
-        } as T;
-      }
-
-      if (path.endsWith('/session') && (init.method ?? 'GET').toUpperCase() === 'DELETE') {
-        return {} as T;
-      }
-    }
-
-    throw error instanceof Error ? error : new Error('Request failed.');
+  const payload = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Request failed.');
   }
+
+  return payload as T;
 }
 
 function normalizeName(value: string | undefined, fallback: string): string {
@@ -261,40 +231,35 @@ function writeStoredState(state: AppState): void {
 
 export async function createSession(email: string, password: string): Promise<AuthUser> {
   const normalizedEmail = normalizeEmail(email);
-  const passwordError = validatePassword(password);
 
   if (!normalizedEmail) {
     throw new Error('A valid work email is required.');
   }
 
-  if (passwordError) {
-    throw new Error(passwordError);
+  if (!password.trim()) {
+    throw new Error('Password is required.');
   }
 
-  const response = await apiRequest<{ token: string; user: AuthUser; profile?: ProfileSettings }>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email: normalizedEmail, password }),
-  });
-
-  const user = normalizeUser(response.user) ?? {
+  const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+  const firebaseUser = credential.user;
+  const user = normalizeUser({
+    email: firebaseUser.email ?? normalizedEmail,
+    name: firebaseUser.displayName ?? normalizedEmail.split('@')[0],
+  }) ?? {
     email: normalizedEmail,
     name: normalizeName(normalizedEmail.split('@')[0], 'Workspace Owner'),
   };
 
-  localStorage.setItem(authTokenKey, response.token);
+  localStorage.setItem(authTokenKey, firebaseUser.uid);
   writeStoredUser(user);
-  if (response.profile) {
-    writeStoredProfile(createDefaultProfileSettings(response.profile));
-  } else {
-    const storedProfile = readStoredProfile();
-    const nextProfile = createDefaultProfileSettings({
-      ...storedProfile,
-      email: user.email,
-      name: user.name,
-      currency: storedProfile.currency || 'KSH',
-    });
-    writeStoredProfile(nextProfile);
-  }
+
+  const profile = readStoredProfile();
+  writeStoredProfile(createDefaultProfileSettings({
+    ...profile,
+    email: user.email,
+    name: user.name,
+    currency: profile.currency || 'KSH',
+  }));
 
   return user;
 }
@@ -320,25 +285,28 @@ export async function createAccount(fullName: string, email: string, password: s
     throw new Error('Passwords do not match.');
   }
 
-  const response = await apiRequest<{ token: string; user: AuthUser; profile?: ProfileSettings }>('/api/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ fullName: normalizedName, email: normalizedEmail, password, confirmPassword: confirmPassword ?? password }),
-  });
+  const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+  const firebaseUser = credential.user;
 
-  const user = normalizeUser(response.user) ?? { email: normalizedEmail, name: normalizedName };
-  localStorage.setItem(authTokenKey, response.token);
-  writeStoredUser(user);
-  if (response.profile) {
-    writeStoredProfile(createDefaultProfileSettings(response.profile));
-  } else {
-    const storedProfile = readStoredProfile();
-    writeStoredProfile(createDefaultProfileSettings({
-      ...storedProfile,
-      email: user.email,
-      name: user.name,
-      currency: storedProfile.currency || 'KSH',
-    }));
+  if (firebaseUser && normalizedName !== 'Workspace Owner') {
+    await updateProfile(firebaseUser, { displayName: normalizedName });
   }
+
+  const user = normalizeUser({
+    email: firebaseUser.email ?? normalizedEmail,
+    name: firebaseUser.displayName ?? normalizedName,
+  }) ?? { email: normalizedEmail, name: normalizedName };
+
+  localStorage.setItem(authTokenKey, firebaseUser.uid);
+  writeStoredUser(user);
+
+  const profile = readStoredProfile();
+  writeStoredProfile(createDefaultProfileSettings({
+    ...profile,
+    email: user.email,
+    name: user.name,
+    currency: profile.currency || 'KSH',
+  }));
 
   return user;
 }
@@ -346,7 +314,10 @@ export async function createAccount(fullName: string, email: string, password: s
 export async function signInWithGoogle(): Promise<AuthUser | null> {
   try {
     await signInWithRedirect(auth, googleProvider);
-    return readStoredUser();
+    const firebaseUser = auth.currentUser;
+    return firebaseUser
+      ? normalizeUser({ email: firebaseUser.email, name: firebaseUser.displayName })
+      : null;
   } catch {
     return null;
   }
@@ -355,14 +326,15 @@ export async function signInWithGoogle(): Promise<AuthUser | null> {
 export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
   try {
     const result = await getRedirectResult(auth);
-    if (!result?.user) {
+    const firebaseUser = result?.user ?? auth.currentUser;
+    if (!firebaseUser) {
       return readStoredUser();
     }
 
-    const user = result.user;
-    const resolvedEmail = normalizeEmail(user.email ?? `${user.uid}@google.local`);
-    const resolvedName = normalizeName(user.displayName ?? resolvedEmail.split('@')[0], 'Workspace Owner');
+    const resolvedEmail = normalizeEmail(firebaseUser.email ?? `${firebaseUser.uid}@google.local`);
+    const resolvedName = normalizeName(firebaseUser.displayName ?? resolvedEmail.split('@')[0], 'Workspace Owner');
     const resolvedUser: AuthUser = { email: resolvedEmail, name: resolvedName };
+    localStorage.setItem(authTokenKey, firebaseUser.uid);
     writeStoredUser(resolvedUser);
     return resolvedUser;
   } catch {
@@ -375,48 +347,30 @@ function hasBackendSessionToken(token: string | null): boolean {
   return !token.startsWith('session-') && !token.startsWith('google-') && token.length > 10;
 }
 
-export async function getSession(): Promise<AuthUser | null> {
-  const token = localStorage.getItem(authTokenKey);
-  const storedUser = readStoredUser();
-  if (!hasBackendSessionToken(token)) return storedUser;
-
-  try {
-    const response = await apiRequest<{ user?: AuthUser }>(`/api/auth/session`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.user) {
-      return storedUser;
-    }
-
-    const user = normalizeUser(response.user) ?? storedUser;
-    if (user) {
-      writeStoredUser(user);
-    }
-    return user;
-  } catch {
-    return storedUser;
+export function getFirebaseUserSession(): AuthUser | null {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) {
+    return readStoredUser();
   }
+
+  const user = normalizeUser({
+    email: firebaseUser.email,
+    name: firebaseUser.displayName,
+  });
+  if (!user) {
+    return readStoredUser();
+  }
+
+  localStorage.setItem(authTokenKey, firebaseUser.uid);
+  writeStoredUser(user);
+  return user;
+}
+
+export async function getSession(): Promise<AuthUser | null> {
+  return getFirebaseUserSession();
 }
 
 export async function destroySession(): Promise<void> {
-  try {
-    const token = localStorage.getItem(authTokenKey);
-    if (hasBackendSessionToken(token)) {
-      await apiRequest<void>('/api/auth/session', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    }
-  } catch {
-    // Ignore backend session cleanup errors.
-  }
-
   try {
     await signOut(auth);
   } catch {

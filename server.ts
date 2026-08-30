@@ -136,108 +136,16 @@ function createSessionUser(email: string, name: string) {
   return { token, user: { email: email.trim().toLowerCase(), name: normalizedName } };
 }
 
-app.post('/api/auth/signup', (req, res) => {
-  const fullName = typeof req.body?.fullName === 'string' ? req.body.fullName.trim() : '';
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
-  const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword.trim() : '';
-
-  if (!fullName) {
-    return res.status(400).json({ error: 'Please enter your full name to create an account.' });
-  }
-
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'A valid work email is required' });
-  }
-
-  const passwordError = validatePasswordPolicy(password);
-  if (passwordError) {
-    return res.status(400).json({ error: passwordError });
-  }
-
-  if (password !== confirmPassword) {
-    return res.status(400).json({ error: 'Passwords do not match.' });
-  }
-
-  const currentState = readAppState();
-  const nextProfile = {
-    ...currentState.profile,
-    name: fullName,
-    email,
-    role: currentState.profile?.role || '',
-    company: currentState.profile?.company || '',
-    currency: currentState.profile?.currency || 'KSH',
-    notifications: {
-      leadAlerts: currentState.profile?.notifications?.leadAlerts !== false,
-      taskReminders: currentState.profile?.notifications?.taskReminders !== false,
-      weeklyDigest: currentState.profile?.notifications?.weeklyDigest === true,
-    },
-    integrations: currentState.profile?.integrations ?? {
-      googleMapsApiKey: '',
-      geminiApiKey: '',
-      openAiApiKey: '',
-      anthropicApiKey: '',
-      linkedinApiKey: '',
-      instagramApiKey: '',
-      twitterApiKey: '',
-      facebookApiKey: '',
-      tiktokApiKey: '',
-    },
-  };
-
-  const session = createSessionUser(email, fullName);
-  const nextState = { ...currentState, profile: nextProfile };
-  writeAppState(nextState);
-  res.json({ token: session.token, user: session.user, profile: nextProfile });
+app.post('/api/auth/signup', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is managed by Firebase Auth and Firestore. Use the Firebase email/password or Google sign-in flow in the app instead of this demo endpoint.',
+  });
 });
 
-app.post('/api/auth/login', (req, res) => {
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
-  const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
-
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'A valid work email is required' });
-  }
-
-  const passwordError = validatePasswordPolicy(password);
-  if (passwordError) {
-    return res.status(400).json({ error: passwordError });
-  }
-
-  const currentState = readAppState();
-  const derivedName = currentState.profile?.email === email && currentState.profile?.name
-    ? currentState.profile.name
-    : email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
-
-  const nextProfile = {
-    ...currentState.profile,
-    name: derivedName,
-    email,
-    role: currentState.profile?.role || '',
-    company: currentState.profile?.company || '',
-    currency: currentState.profile?.currency || 'KSH',
-    notifications: {
-      leadAlerts: currentState.profile?.notifications?.leadAlerts !== false,
-      taskReminders: currentState.profile?.notifications?.taskReminders !== false,
-      weeklyDigest: currentState.profile?.notifications?.weeklyDigest === true,
-    },
-    integrations: currentState.profile?.integrations ?? {
-      googleMapsApiKey: '',
-      geminiApiKey: '',
-      openAiApiKey: '',
-      anthropicApiKey: '',
-      linkedinApiKey: '',
-      instagramApiKey: '',
-      twitterApiKey: '',
-      facebookApiKey: '',
-      tiktokApiKey: '',
-    },
-  };
-
-  const session = createSessionUser(email, derivedName);
-  const nextState = { ...currentState, profile: nextProfile };
-  writeAppState(nextState);
-  res.json({ token: session.token, user: session.user, profile: nextProfile });
+app.post('/api/auth/login', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is managed by Firebase Auth and Firestore. Use the Firebase email/password or Google sign-in flow in the app instead of this demo endpoint.',
+  });
 });
 
 app.get('/api/auth/session', (req, res) => {
