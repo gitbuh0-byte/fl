@@ -24,6 +24,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
     window.setTimeout(() => setSaved(false), 2200);
   };
 
+  const providerFields: Array<{ key: keyof typeof integrations; label: string }> = [
+    { key: 'googleMapsApiKey', label: 'Google Maps API Key' },
+    { key: 'geminiApiKey', label: 'Gemini API Key' },
+    { key: 'openAiApiKey', label: 'OpenAI API Key' },
+    { key: 'anthropicApiKey', label: 'Anthropic API Key' },
+    { key: 'linkedinApiKey', label: 'LinkedIn API Key' },
+    { key: 'instagramApiKey', label: 'Instagram API Key' },
+    { key: 'twitterApiKey', label: 'Twitter/X API Key' },
+    { key: 'facebookApiKey', label: 'Facebook API Key' },
+    { key: 'tiktokApiKey', label: 'TikTok API Key' },
+  ];
+
   const updateIntegration = (key: keyof typeof integrations, value: string) => {
     setIntegrations((prev) => ({ ...prev, [key]: value }));
   };
@@ -49,16 +61,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onClose, profile, onSa
         </section>
         <section className="profile-card profile-security">
           <div className="profile-card-heading"><span className="profile-icon"><ShieldCheck size={17} /></span><div><h2>Provider access</h2><p>Store the live keys needed for Google Maps, social scraping, and AI enrichment.</p></div></div>
-          <div className="space-y-3">
-            <label>Google Maps API Key<input type="password" value={integrations.googleMapsApiKey} onChange={(event) => updateIntegration('googleMapsApiKey', event.target.value)} /></label>
-            <label>Gemini API Key<input type="password" value={integrations.geminiApiKey} onChange={(event) => updateIntegration('geminiApiKey', event.target.value)} /></label>
-            <label>OpenAI API Key<input type="password" value={integrations.openAiApiKey} onChange={(event) => updateIntegration('openAiApiKey', event.target.value)} /></label>
-            <label>Anthropic API Key<input type="password" value={integrations.anthropicApiKey} onChange={(event) => updateIntegration('anthropicApiKey', event.target.value)} /></label>
-            <label>LinkedIn API Key<input type="password" value={integrations.linkedinApiKey} onChange={(event) => updateIntegration('linkedinApiKey', event.target.value)} /></label>
-            <label>Instagram API Key<input type="password" value={integrations.instagramApiKey} onChange={(event) => updateIntegration('instagramApiKey', event.target.value)} /></label>
-            <label>Twitter/X API Key<input type="password" value={integrations.twitterApiKey} onChange={(event) => updateIntegration('twitterApiKey', event.target.value)} /></label>
-            <label>Facebook API Key<input type="password" value={integrations.facebookApiKey} onChange={(event) => updateIntegration('facebookApiKey', event.target.value)} /></label>
-            <label>TikTok API Key<input type="password" value={integrations.tiktokApiKey} onChange={(event) => updateIntegration('tiktokApiKey', event.target.value)} /></label>
+          <div className="provider-access-list">
+            {providerFields.map(({ key, label }) => (
+              <div key={key} className="provider-field">
+                <label>{label}</label>
+                <input type="password" value={integrations[key]} onChange={(event) => updateIntegration(key, event.target.value)} placeholder="••••••••••••" />
+              </div>
+            ))}
           </div>
           <div className="security-row"><Mail size={15} /><span><b>Verified work email</b><small>{email}</small></span><strong>Active</strong></div>
           <div className="security-row"><ShieldCheck size={15} /><span><b>Workspace protection</b><small>Keys stay in your saved profile settings</small></span><button type="button">Protected</button></div>
