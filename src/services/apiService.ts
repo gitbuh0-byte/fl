@@ -47,6 +47,28 @@ const userKey = 'omnibiz-user';
 const appStateKey = 'omnibiz-app-state';
 const profileKey = 'omnibiz-profile';
 
+function normalizeName(value: string | undefined, fallback: string): string {
+  const cleaned = String(value ?? '').trim();
+  if (!cleaned) return fallback;
+  return cleaned
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function normalizeEmail(value: string | undefined): string {
+  const cleaned = String(value ?? '').trim().toLowerCase();
+  return cleaned.includes('@') ? cleaned : '';
+}
+
+function normalizeUser(user: Partial<AuthUser> | null | undefined): AuthUser | null {
+  if (!user) return null;
+  const email = normalizeEmail(user.email);
+  const name = normalizeName(user.name, email.split('@')[0] || 'User');
+  if (!email) return null;
+  return { email, name };
+}
+
 export function createDefaultProfileSettings(overrides: Partial<ProfileSettings> = {}): ProfileSettings {
   const defaults: ProfileSettings = {
     name: 'Alex Sterling',
@@ -107,10 +129,7 @@ function readStoredUser(): AuthUser | null {
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as Partial<AuthUser>;
-    if (parsed.email && parsed.name) {
-      return { email: parsed.email, name: parsed.name };
-    }
+    return normalizeUser(JSON.parse(raw) as Partial<AuthUser>);
   } catch {
     // Ignore malformed persisted user data.
   }
@@ -119,8 +138,11 @@ function readStoredUser(): AuthUser | null {
 }
 
 export function writeStoredUser(user: AuthUser): void {
-  localStorage.setItem(userKey, JSON.stringify(user));
-  localStorage.setItem(authTokenKey, `demo-${user.email}`);
+  const normalized = normalizeUser(user);
+  if (!normalized) return;
+
+  localStorage.setItem(userKey, JSON.stringify(normalized));
+  localStorage.setItem(authTokenKey, `demo-${normalized.email}`);
 }
 
 export function readStoredProfile(): ProfileSettings {
@@ -171,29 +193,41 @@ function writeStoredState(state: AppState): void {
 }
 
 export async function createSession(email: string): Promise<AuthUser> {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    throw new Error('A valid work email is required.');
+  }
+
   const user: AuthUser = {
     email: normalizedEmail,
-    name: normalizedEmail.split('@')[0]?.replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) || 'User',
+    name: normalizeName(normalizedEmail.split('@')[0], 'User'),
   };
 
   writeStoredUser(user);
   const storedProfile = readStoredProfile();
+  const nextProfile = createDefaultProfileSettings({
+    ...storedProfile,
+    email: normalizedEmail,
+    name: user.name,
+  });
+
   if (!storedProfile.email || storedProfile.email === 'alex@omnibiz.co') {
-    writeStoredProfile(createDefaultProfileSettings({ ...storedProfile, email: normalizedEmail, name: user.name }));
+    writeStoredProfile(nextProfile);
   }
+
   return user;
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
   const fallbackUser: AuthUser = { email: 'google-user@demo.local', name: 'Google User' };
-  writeStoredUser(fallbackUser);
+  const normalized = normalizeUser(fallbackUser) ?? fallbackUser;
+  writeStoredUser(normalized);
 
   try {
     await signInWithRedirect(auth, googleProvider);
-    return fallbackUser;
+    return normalized;
   } catch {
-    return fallbackUser;
+    return normalized;
   }
 }
 
@@ -205,8 +239,8 @@ export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
     }
 
     const user = result.user;
-    const resolvedEmail = (user.email ?? `${user.uid}@google.local`).toLowerCase();
-    const resolvedName = user.displayName ?? resolvedEmail.split('@')[0];
+    const resolvedEmail = normalizeEmail(user.email ?? `${user.uid}@google.local`);
+    const resolvedName = normalizeName(user.displayName ?? resolvedEmail.split('@')[0], 'Google User');
     const resolvedUser: AuthUser = { email: resolvedEmail, name: resolvedName };
     writeStoredUser(resolvedUser);
     return resolvedUser;
@@ -263,8 +297,12 @@ export async function saveAppState(state: AppState): Promise<void> {
 
   const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
   if (uid) {
-    await setDoc(getAppStateDoc(uid), normalized, { merge: true });
-    return;
+    try {
+      await setDoc(getAppStateDoc(uid), normalized, { merge: true });
+      return;
+    } catch {
+      // Fall back to the browser store when the Firebase document cannot be written.
+    }
   }
 
   writeStoredState(normalized);
@@ -272,6 +310,33 @@ export async function saveAppState(state: AppState): Promise<void> {
 
 function getApiKey(profile: Partial<ProfileSettings> | undefined, key: keyof ProviderIntegrationSettings): string {
   return String(profile?.integrations?.[key] ?? '').trim();
+}
+
+async function fetchProviderJson<T>(
+  providerUrl: string | undefined,
+  apiKey: string | undefined,
+  payload: Record<string, unknown>,
+  label: string,
+): Promise<T> {
+  const endpoint = (providerUrl ?? '').trim();
+  if (!endpoint) {
+    throw new Error(`${label} provider endpoint is not configured. Add your live API URL in the provider settings.`);
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`${label} provider request failed (${response.status}).`);
+  }
+
+  return (await response.json()) as T;
 }
 
 function ensureProviderConfigured(profile: Partial<ProfileSettings> | undefined, key: keyof ProviderIntegrationSettings, label: string): string {
@@ -370,10 +435,34 @@ export async function scrapeGoogleMaps(params: {
   location: string;
   radius?: number;
   limit?: number;
+  providerUrl?: string;
+  providerToken?: string;
 }): Promise<{ success: boolean; results: ScrapedLeadResult[]; source: string }> {
   const profile = readStoredProfile();
   const apiKey = ensureProviderConfigured(profile, 'googleMapsApiKey', 'Google Maps');
   const radiusMeters = Math.max(1000, Math.round((params.radius ?? 25) * 1609.34));
+  const endpoint = (params.providerUrl ?? '').trim();
+
+  if (endpoint) {
+    const payload = await fetchProviderJson<{ success?: boolean; results?: ScrapedLeadResult[]; source?: string }>(
+      endpoint,
+      params.providerToken ?? apiKey,
+      {
+        keyword: params.keyword,
+        location: params.location,
+        radius: params.radius ?? 25,
+        limit: params.limit ?? 8,
+      },
+      'Google Maps',
+    );
+
+    return {
+      success: payload.success ?? true,
+      results: payload.results ?? [],
+      source: payload.source ?? 'Google Maps provider API',
+    };
+  }
+
   const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(params.keyword)}&location=${encodeURIComponent(params.location)}&radius=${radiusMeters}&key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(searchUrl);
   if (!response.ok) {
@@ -410,6 +499,8 @@ export async function scrapeSocialMedia(params: {
   platform: string;
   keyword: string;
   limit?: number;
+  providerUrl?: string;
+  providerToken?: string;
 }): Promise<{ success: boolean; results: ScrapedLeadResult[] }> {
   const profile = readStoredProfile();
   const platformKeyMap: Record<string, keyof ProviderIntegrationSettings> = {
@@ -420,6 +511,24 @@ export async function scrapeSocialMedia(params: {
     tiktok: 'tiktokApiKey',
   };
   const keyName = platformKeyMap[params.platform.toLowerCase()] ?? 'googleMapsApiKey';
+
+  if (params.providerUrl) {
+    const configToken = getApiKey(profile, keyName);
+    const effectiveProviderToken = params.providerToken ?? (configToken || undefined);
+    const payload = await fetchProviderJson<{ success?: boolean; results?: ScrapedLeadResult[] }>(
+      params.providerUrl,
+      effectiveProviderToken,
+      {
+        platform: params.platform,
+        keyword: params.keyword,
+        limit: params.limit ?? 6,
+      },
+      params.platform || 'Social media',
+    );
+
+    return { success: payload.success ?? true, results: payload.results ?? [] };
+  }
+
   ensureProviderConfigured(profile, keyName, params.platform || 'Social media');
 
   return {
@@ -441,8 +550,35 @@ export async function scrapeSocialMedia(params: {
   };
 }
 
-export async function scrapeWebDomain(url: string): Promise<{ success: boolean; result: ScrapedLeadResult }> {
+export async function scrapeWebDomain(url: string, providerOptions?: { providerUrl?: string; providerToken?: string }): Promise<{ success: boolean; result: ScrapedLeadResult }> {
   const cleanUrl = url.trim();
+  if (providerOptions?.providerUrl) {
+    const payload = await fetchProviderJson<{ success?: boolean; result?: ScrapedLeadResult }>(
+      providerOptions.providerUrl,
+      providerOptions.providerToken,
+      { url: cleanUrl },
+      'Web domain',
+    );
+
+    return {
+      success: payload.success ?? true,
+      result: payload.result ?? {
+        id: `web_${Date.now()}`,
+        name: cleanUrl,
+        contactPerson: 'Company contact',
+        title: 'Operations lead',
+        email: `team@${cleanUrl.replace(/^https?:\/\//i, '').split('/')[0]}`,
+        phone: '+1 (415) 555-0103',
+        website: cleanUrl,
+        address: 'Remote',
+        socialHandles: {},
+        sourceUrl: cleanUrl,
+        platform: 'Web domain scrape',
+        confidenceScore: 90,
+      },
+    };
+  }
+
   const response = await fetch(cleanUrl, { headers: { Accept: 'text/html' } });
   if (!response.ok) {
     throw new Error(`Domain analysis failed (${response.status}).`);
@@ -471,7 +607,16 @@ export async function scrapeWebDomain(url: string): Promise<{ success: boolean; 
   };
 }
 
-export async function enrichLeadWithAI(lead: Partial<Lead>): Promise<any> {
+export async function enrichLeadWithAI(lead: Partial<Lead>, providerOptions?: { providerUrl?: string; providerToken?: string }): Promise<any> {
+  if (providerOptions?.providerUrl) {
+    return fetchProviderJson<{ success?: boolean; lead?: Partial<Lead>; enriched?: boolean; enrichment?: Record<string, unknown> }>(
+      providerOptions.providerUrl,
+      providerOptions.providerToken,
+      { lead },
+      'AI enrichment',
+    );
+  }
+
   const profile = readStoredProfile();
   const geminiKey = profile.integrations.geminiApiKey.trim();
   const openAiKey = profile.integrations.openAiApiKey.trim();

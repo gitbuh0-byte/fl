@@ -192,6 +192,7 @@ export function App() {
   const handleSaveProfile = (nextProfile: ProfileSettings) => {
     const normalizedProfile = createDefaultProfileSettings(nextProfile);
     setProfile(normalizedProfile);
+    void saveAppState({ leads, campaigns, cadences, tasks, profile: normalizedProfile });
     showToast('Profile changes saved.');
   };
 
