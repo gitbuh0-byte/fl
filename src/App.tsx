@@ -226,6 +226,7 @@ export function App() {
     }
 
     localStorage.setItem('omnibiz-auth-token', `google-${user.email}`);
+    localStorage.setItem('omnibiz-user', JSON.stringify(user));
     syncProfileFromUser(user);
     setIsAuthenticated(true);
     setCurrentView('dashboard');
