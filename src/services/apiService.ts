@@ -228,6 +228,41 @@ export async function createSession(email: string, password: string): Promise<Au
   return user;
 }
 
+export async function createAccount(fullName: string, email: string, password: string): Promise<AuthUser> {
+  const normalizedName = normalizeName(fullName, 'Workspace Owner');
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedPassword = password.trim();
+
+  if (!normalizedName || normalizedName === 'Workspace Owner') {
+    throw new Error('Please enter your full name to create an account.');
+  }
+
+  if (!normalizedEmail) {
+    throw new Error('A valid work email is required.');
+  }
+
+  if (normalizedPassword.length < 8) {
+    throw new Error('Password must be at least 8 characters long.');
+  }
+
+  const user: AuthUser = {
+    email: normalizedEmail,
+    name: normalizedName,
+  };
+
+  writeStoredUser(user);
+  const storedProfile = readStoredProfile();
+  const nextProfile = createDefaultProfileSettings({
+    ...storedProfile,
+    email: normalizedEmail,
+    name: normalizedName,
+    currency: storedProfile.currency || 'KSH',
+  });
+
+  writeStoredProfile(nextProfile);
+  return user;
+}
+
 export async function signInWithGoogle(): Promise<AuthUser | null> {
   try {
     await signInWithRedirect(auth, googleProvider);

@@ -11,7 +11,7 @@ import { CreateLeadModal } from './components/CreateLeadModal';
 import { ProfilePage } from './components/ProfilePage';
 import { AuthPage } from './components/AuthPage';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { completeGoogleRedirectSignIn, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
+import { completeGoogleRedirectSignIn, createAccount, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
 
 export function App() {
@@ -192,9 +192,19 @@ export function App() {
 
   const handleLogin = async (email: string, password: string) => {
     const user = await createSession(email, password);
+    localStorage.setItem('omnibiz-user', JSON.stringify(user));
+    localStorage.setItem('omnibiz-auth-token', `session-${user.email}`);
     setIsAuthenticated(true);
     syncProfileFromUser(user);
-    localStorage.setItem('omnibiz-auth-token', localStorage.getItem('omnibiz-auth-token') ?? 'session');
+    setCurrentView('dashboard');
+  };
+
+  const handleCreateAccount = async (fullName: string, email: string, password: string) => {
+    const user = await createAccount(fullName, email, password);
+    localStorage.setItem('omnibiz-user', JSON.stringify(user));
+    localStorage.setItem('omnibiz-auth-token', `session-${user.email}`);
+    setIsAuthenticated(true);
+    syncProfileFromUser(user);
     setCurrentView('dashboard');
   };
 
@@ -385,7 +395,7 @@ export function App() {
           sampleLeads={leads}
         />
       ) : !isAuthenticated ? (
-        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onGoogleLogin={handleGoogleLogin} />
+        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onCreateAccount={handleCreateAccount} onGoogleLogin={handleGoogleLogin} />
       ) : (
         isProfileOpen ? (
           <ProfilePage profile={profile} onSaveProfile={handleSaveProfile} onClose={() => setIsProfileOpen(false)} />
