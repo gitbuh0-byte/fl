@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
+import { validatePassword } from '../services/apiService';
 
 interface AuthPageProps {
   onBack: () => void;
   onContinue: (email: string, password: string) => Promise<void>;
-  onCreateAccount: (fullName: string, email: string, password: string) => Promise<void>;
+  onCreateAccount: (fullName: string, email: string, password: string, confirmPassword?: string) => Promise<void>;
   onGoogleLogin: () => Promise<void>;
 }
 
@@ -16,6 +17,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const passwordRequirements = validatePassword(password);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -27,8 +29,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
         return;
       }
 
-      if (!email.trim() || password.trim().length < 8) {
-        setError('Use a valid work email and a password with at least 8 characters.');
+      const passwordPolicyError = validatePassword(password);
+      if (!email.trim() || passwordPolicyError) {
+        setError(passwordPolicyError || 'Use a valid work email and a strong password.');
         return;
       }
 
@@ -39,7 +42,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
 
       setIsSubmitting(true);
       try {
-        await onCreateAccount(fullName, email, password);
+        await onCreateAccount(fullName, email, password, confirmPassword);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to create your account');
       } finally {
@@ -48,8 +51,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
       return;
     }
 
-    if (!email.trim() || password.trim().length < 8) {
-      setError('Use a valid work email and a password with at least 8 characters.');
+    const passwordPolicyError = validatePassword(password);
+    if (!email.trim() || passwordPolicyError) {
+      setError(passwordPolicyError || 'Use a valid work email and a strong password.');
       return;
     }
 
@@ -88,10 +92,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
             <label className="auth-label">Full name<div className="auth-input"><Mail size={15} /><input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your full name" required /></div></label>
           )}
           <label className="auth-label">Work email<div className="auth-input"><Mail size={15} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required /></div></label>
-          <label className="auth-label">Password<div className="auth-input"><Mail size={15} /><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter at least 8 characters" required minLength={8} /></div></label>
+          <label className="auth-label">Password<div className="auth-input"><Mail size={15} /><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Minimum 8 chars, 1 symbol, 1 number" required minLength={8} /></div></label>
           {mode === 'signup' && (
             <label className="auth-label">Confirm password<div className="auth-input"><Mail size={15} /><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm your password" required minLength={8} /></div></label>
           )}
+          {password && passwordRequirements && <p className="auth-error" style={{ marginTop: 8 }}>{passwordRequirements}</p>}
           <button className="auth-submit" type="submit" disabled={isSubmitting}>{mode === 'signup' ? 'Create account' : 'Continue with email'} <ArrowRight size={15} /></button>
         </form>
         {error && <p role="alert" className="auth-error">{error}</p>}

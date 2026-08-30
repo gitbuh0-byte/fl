@@ -48,6 +48,33 @@ const userKey = 'omnibiz-user';
 const appStateKey = 'omnibiz-app-state';
 const profileKey = 'omnibiz-profile';
 
+export function validatePassword(password: string): string | null {
+  const trimmed = password.trim();
+  if (trimmed.length < 8) return 'Password must be at least 8 characters long.';
+  if (!/[a-z]/.test(trimmed)) return 'Password must include at least one lowercase letter.';
+  if (!/[A-Z]/.test(trimmed)) return 'Password must include at least one uppercase letter.';
+  if (!/\d/.test(trimmed)) return 'Password must include at least one number.';
+  if (!/[^A-Za-z0-9]/.test(trimmed)) return 'Password must include at least one symbol.';
+  return null;
+}
+
+async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers ?? {}),
+    },
+  });
+
+  const payload = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Request failed.');
+  }
+
+  return payload as T;
+}
+
 function normalizeName(value: string | undefined, fallback: string): string {
   const cleaned = String(value ?? '').trim();
   if (!cleaned) return fallback;
@@ -197,41 +224,48 @@ function writeStoredState(state: AppState): void {
 
 export async function createSession(email: string, password: string): Promise<AuthUser> {
   const normalizedEmail = normalizeEmail(email);
-  const normalizedPassword = password.trim();
+  const passwordError = validatePassword(password);
 
   if (!normalizedEmail) {
     throw new Error('A valid work email is required.');
   }
 
-  if (normalizedPassword.length < 8) {
-    throw new Error('Password must be at least 8 characters long.');
+  if (passwordError) {
+    throw new Error(passwordError);
   }
 
-  const user: AuthUser = {
+  const response = await apiRequest<{ token: string; user: AuthUser; profile?: ProfileSettings }>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: normalizedEmail, password }),
+  });
+
+  const user = normalizeUser(response.user) ?? {
     email: normalizedEmail,
     name: normalizeName(normalizedEmail.split('@')[0], 'Workspace Owner'),
   };
 
+  localStorage.setItem(authTokenKey, response.token);
   writeStoredUser(user);
-  const storedProfile = readStoredProfile();
-  const nextProfile = createDefaultProfileSettings({
-    ...storedProfile,
-    email: normalizedEmail,
-    name: user.name,
-    currency: storedProfile.currency || 'KSH',
-  });
-
-  if (!storedProfile.email || !storedProfile.name || storedProfile.name === 'Workspace Owner') {
+  if (response.profile) {
+    writeStoredProfile(createDefaultProfileSettings(response.profile));
+  } else {
+    const storedProfile = readStoredProfile();
+    const nextProfile = createDefaultProfileSettings({
+      ...storedProfile,
+      email: user.email,
+      name: user.name,
+      currency: storedProfile.currency || 'KSH',
+    });
     writeStoredProfile(nextProfile);
   }
 
   return user;
 }
 
-export async function createAccount(fullName: string, email: string, password: string): Promise<AuthUser> {
+export async function createAccount(fullName: string, email: string, password: string, confirmPassword?: string): Promise<AuthUser> {
   const normalizedName = normalizeName(fullName, 'Workspace Owner');
   const normalizedEmail = normalizeEmail(email);
-  const normalizedPassword = password.trim();
+  const passwordError = validatePassword(password);
 
   if (!normalizedName || normalizedName === 'Workspace Owner') {
     throw new Error('Please enter your full name to create an account.');
@@ -241,25 +275,34 @@ export async function createAccount(fullName: string, email: string, password: s
     throw new Error('A valid work email is required.');
   }
 
-  if (normalizedPassword.length < 8) {
-    throw new Error('Password must be at least 8 characters long.');
+  if (passwordError) {
+    throw new Error(passwordError);
   }
 
-  const user: AuthUser = {
-    email: normalizedEmail,
-    name: normalizedName,
-  };
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    throw new Error('Passwords do not match.');
+  }
 
-  writeStoredUser(user);
-  const storedProfile = readStoredProfile();
-  const nextProfile = createDefaultProfileSettings({
-    ...storedProfile,
-    email: normalizedEmail,
-    name: normalizedName,
-    currency: storedProfile.currency || 'KSH',
+  const response = await apiRequest<{ token: string; user: AuthUser; profile?: ProfileSettings }>('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ fullName: normalizedName, email: normalizedEmail, password, confirmPassword: confirmPassword ?? password }),
   });
 
-  writeStoredProfile(nextProfile);
+  const user = normalizeUser(response.user) ?? { email: normalizedEmail, name: normalizedName };
+  localStorage.setItem(authTokenKey, response.token);
+  writeStoredUser(user);
+  if (response.profile) {
+    writeStoredProfile(createDefaultProfileSettings(response.profile));
+  } else {
+    const storedProfile = readStoredProfile();
+    writeStoredProfile(createDefaultProfileSettings({
+      ...storedProfile,
+      email: user.email,
+      name: user.name,
+      currency: storedProfile.currency || 'KSH',
+    }));
+  }
+
   return user;
 }
 
@@ -291,10 +334,46 @@ export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
 }
 
 export async function getSession(): Promise<AuthUser | null> {
-  return readStoredUser();
+  const token = localStorage.getItem(authTokenKey);
+  if (!token) return readStoredUser();
+
+  try {
+    const response = await apiRequest<{ user?: AuthUser }>(`/api/auth/session`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.user) {
+      return readStoredUser();
+    }
+
+    const user = normalizeUser(response.user) ?? readStoredUser();
+    if (user) {
+      writeStoredUser(user);
+    }
+    return user;
+  } catch {
+    return readStoredUser();
+  }
 }
 
 export async function destroySession(): Promise<void> {
+  try {
+    const token = localStorage.getItem(authTokenKey);
+    if (token) {
+      await apiRequest<void>('/api/auth/session', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+  } catch {
+    // Ignore backend session cleanup errors.
+  }
+
   try {
     await signOut(auth);
   } catch {

@@ -199,8 +199,8 @@ export function App() {
     setCurrentView('dashboard');
   };
 
-  const handleCreateAccount = async (fullName: string, email: string, password: string) => {
-    const user = await createAccount(fullName, email, password);
+  const handleCreateAccount = async (fullName: string, email: string, password: string, confirmPassword?: string) => {
+    const user = await createAccount(fullName, email, password, confirmPassword);
     localStorage.setItem('omnibiz-user', JSON.stringify(user));
     localStorage.setItem('omnibiz-auth-token', `session-${user.email}`);
     setIsAuthenticated(true);

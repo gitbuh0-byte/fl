@@ -119,7 +119,79 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.post('/api/auth/session', (req, res) => {
+function validatePasswordPolicy(password: string): string | null {
+  const trimmed = password.trim();
+  if (trimmed.length < 8) return 'Password must be at least 8 characters long.';
+  if (!/[a-z]/.test(trimmed)) return 'Password must include at least one lowercase letter.';
+  if (!/[A-Z]/.test(trimmed)) return 'Password must include at least one uppercase letter.';
+  if (!/\d/.test(trimmed)) return 'Password must include at least one number.';
+  if (!/[^A-Za-z0-9]/.test(trimmed)) return 'Password must include at least one symbol.';
+  return null;
+}
+
+function createSessionUser(email: string, name: string) {
+  const token = randomUUID();
+  const normalizedName = name.trim() || email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+  sessions.set(token, { email: email.trim().toLowerCase(), name: normalizedName, expiresAt: Date.now() + SESSION_TTL_MS });
+  return { token, user: { email: email.trim().toLowerCase(), name: normalizedName } };
+}
+
+app.post('/api/auth/signup', (req, res) => {
+  const fullName = typeof req.body?.fullName === 'string' ? req.body.fullName.trim() : '';
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
+  const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword.trim() : '';
+
+  if (!fullName) {
+    return res.status(400).json({ error: 'Please enter your full name to create an account.' });
+  }
+
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid work email is required' });
+  }
+
+  const passwordError = validatePasswordPolicy(password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: 'Passwords do not match.' });
+  }
+
+  const currentState = readAppState();
+  const nextProfile = {
+    ...currentState.profile,
+    name: fullName,
+    email,
+    role: currentState.profile?.role || '',
+    company: currentState.profile?.company || '',
+    currency: currentState.profile?.currency || 'KSH',
+    notifications: {
+      leadAlerts: currentState.profile?.notifications?.leadAlerts !== false,
+      taskReminders: currentState.profile?.notifications?.taskReminders !== false,
+      weeklyDigest: currentState.profile?.notifications?.weeklyDigest === true,
+    },
+    integrations: currentState.profile?.integrations ?? {
+      googleMapsApiKey: '',
+      geminiApiKey: '',
+      openAiApiKey: '',
+      anthropicApiKey: '',
+      linkedinApiKey: '',
+      instagramApiKey: '',
+      twitterApiKey: '',
+      facebookApiKey: '',
+      tiktokApiKey: '',
+    },
+  };
+
+  const session = createSessionUser(email, fullName);
+  const nextState = { ...currentState, profile: nextProfile };
+  writeAppState(nextState);
+  res.json({ token: session.token, user: session.user, profile: nextProfile });
+});
+
+app.post('/api/auth/login', (req, res) => {
   const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
 
@@ -127,27 +199,45 @@ app.post('/api/auth/session', (req, res) => {
     return res.status(400).json({ error: 'A valid work email is required' });
   }
 
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+  const passwordError = validatePasswordPolicy(password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
   }
 
-  const token = randomUUID();
-  const name = email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
   const currentState = readAppState();
-  const nextState = {
-    ...currentState,
-    profile: {
-      ...currentState.profile,
-      name,
-      email,
-      role: currentState.profile?.role || '',
-      company: currentState.profile?.company || '',
-      currency: currentState.profile?.currency || 'KSH',
+  const derivedName = currentState.profile?.email === email && currentState.profile?.name
+    ? currentState.profile.name
+    : email.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
+
+  const nextProfile = {
+    ...currentState.profile,
+    name: derivedName,
+    email,
+    role: currentState.profile?.role || '',
+    company: currentState.profile?.company || '',
+    currency: currentState.profile?.currency || 'KSH',
+    notifications: {
+      leadAlerts: currentState.profile?.notifications?.leadAlerts !== false,
+      taskReminders: currentState.profile?.notifications?.taskReminders !== false,
+      weeklyDigest: currentState.profile?.notifications?.weeklyDigest === true,
+    },
+    integrations: currentState.profile?.integrations ?? {
+      googleMapsApiKey: '',
+      geminiApiKey: '',
+      openAiApiKey: '',
+      anthropicApiKey: '',
+      linkedinApiKey: '',
+      instagramApiKey: '',
+      twitterApiKey: '',
+      facebookApiKey: '',
+      tiktokApiKey: '',
     },
   };
+
+  const session = createSessionUser(email, derivedName);
+  const nextState = { ...currentState, profile: nextProfile };
   writeAppState(nextState);
-  sessions.set(token, { email, name, expiresAt: Date.now() + SESSION_TTL_MS });
-  res.json({ token, user: { email, name } });
+  res.json({ token: session.token, user: session.user, profile: nextProfile });
 });
 
 app.get('/api/auth/session', (req, res) => {
