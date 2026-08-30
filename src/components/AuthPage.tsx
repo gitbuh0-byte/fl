@@ -75,11 +75,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
         <span className="auth-kicker">Your workspace awaits</span>
         <h1>{mode === 'signup' ? 'Create your account.' : 'Sign in to start building.'}</h1>
         <p className="auth-lede">Bring your prospecting, pipeline, and follow-up work into one focused workspace.</p>
-        <div className="auth-mode-toggle" style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-          <button type="button" className={mode === 'signin' ? 'auth-submit' : 'google-button'} style={{ flex: 1 }} onClick={() => setMode('signin')}>
+        <div className="auth-mode-toggle">
+          <button type="button" className={mode === 'signin' ? 'auth-mode-button active' : 'auth-mode-button'} onClick={() => setMode('signin')}>
             Sign in
           </button>
-          <button type="button" className={mode === 'signup' ? 'auth-submit' : 'google-button'} style={{ flex: 1 }} onClick={() => setMode('signup')}>
+          <button type="button" className={mode === 'signup' ? 'auth-mode-button active' : 'auth-mode-button'} onClick={() => setMode('signup')}>
             Create account
           </button>
         </div>

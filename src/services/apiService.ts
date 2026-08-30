@@ -172,7 +172,7 @@ export function writeStoredUser(user: AuthUser): void {
   if (!normalized) return;
 
   localStorage.setItem(userKey, JSON.stringify(normalized));
-  localStorage.setItem(authTokenKey, `demo-${normalized.email}`);
+  localStorage.setItem(authTokenKey, `session-${normalized.email}`);
 }
 
 export function readStoredProfile(): ProfileSettings {
