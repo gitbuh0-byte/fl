@@ -21,7 +21,7 @@ export function App() {
   const [dashboardInstance, setDashboardInstance] = useState(0);
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const savedView = sessionStorage.getItem('omnibiz-current-view');
-    const hasSession = Boolean(localStorage.getItem('omnibiz-auth-token') || localStorage.getItem('omnibiz-user'));
+    const hasSession = Boolean(auth.currentUser);
     if (hasSession) {
       return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns' ? savedView : 'dashboard';
     }
@@ -46,7 +46,7 @@ export function App() {
   const [cadences, setCadences] = useState<import('./types').EmailCadence[]>([]);
   const [tasks, setTasks] = useState<FollowUpTask[]>([]);
   const [isStateHydrated, setIsStateHydrated] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('omnibiz-auth-token')));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(auth.currentUser));
   const [profile, setProfile] = useState<ProfileSettings>(() => createDefaultProfileSettings());
 
   const syncProfileFromUser = (user: { name?: string; email?: string } | null) => {
@@ -113,14 +113,12 @@ export function App() {
           email: firebaseUser.email ?? 'workspace@omnibiz.local',
           name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Workspace Owner',
         };
-        localStorage.setItem('omnibiz-auth-token', firebaseUser.uid);
-        localStorage.setItem('omnibiz-user', JSON.stringify(user));
         setIsAuthenticated(true);
         setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? 'dashboard' : prev));
+        syncProfileFromUser(user);
         return;
       }
 
-      localStorage.removeItem('omnibiz-auth-token');
       localStorage.removeItem('omnibiz-user');
       setIsAuthenticated(false);
       setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? prev : 'landing'));
@@ -201,8 +199,6 @@ export function App() {
       return;
     }
 
-    localStorage.setItem('omnibiz-auth-token', auth.currentUser?.uid ?? `google-${user.email}`);
-    localStorage.setItem('omnibiz-user', JSON.stringify(user));
     syncProfileFromUser(user);
     setIsAuthenticated(true);
     setCurrentView('dashboard');

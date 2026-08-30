@@ -1,10 +1,8 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
-  getRedirectResult,
-  onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   updateProfile,
 } from 'firebase/auth';
@@ -51,7 +49,6 @@ export interface AuthUser {
   name: string;
 }
 
-const authTokenKey = 'omnibiz-auth-token';
 const userKey = 'omnibiz-user';
 const appStateKey = 'omnibiz-app-state';
 const profileKey = 'omnibiz-profile';
@@ -250,7 +247,6 @@ export async function createSession(email: string, password: string): Promise<Au
     name: normalizeName(normalizedEmail.split('@')[0], 'Workspace Owner'),
   };
 
-  localStorage.setItem(authTokenKey, firebaseUser.uid);
   writeStoredUser(user);
 
   const profile = readStoredProfile();
@@ -297,7 +293,6 @@ export async function createAccount(fullName: string, email: string, password: s
     name: firebaseUser.displayName ?? normalizedName,
   }) ?? { email: normalizedEmail, name: normalizedName };
 
-  localStorage.setItem(authTokenKey, firebaseUser.uid);
   writeStoredUser(user);
 
   const profile = readStoredProfile();
@@ -313,38 +308,18 @@ export async function createAccount(fullName: string, email: string, password: s
 
 export async function signInWithGoogle(): Promise<AuthUser | null> {
   try {
-    await signInWithRedirect(auth, googleProvider);
-    const firebaseUser = auth.currentUser;
-    return firebaseUser
-      ? normalizeUser({ email: firebaseUser.email, name: firebaseUser.displayName })
-      : null;
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = normalizeUser({
+      email: result.user.email,
+      name: result.user.displayName,
+    });
+    if (user) {
+      writeStoredUser(user);
+    }
+    return user;
   } catch {
     return null;
   }
-}
-
-export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
-  try {
-    const result = await getRedirectResult(auth);
-    const firebaseUser = result?.user ?? auth.currentUser;
-    if (!firebaseUser) {
-      return readStoredUser();
-    }
-
-    const resolvedEmail = normalizeEmail(firebaseUser.email ?? `${firebaseUser.uid}@google.local`);
-    const resolvedName = normalizeName(firebaseUser.displayName ?? resolvedEmail.split('@')[0], 'Workspace Owner');
-    const resolvedUser: AuthUser = { email: resolvedEmail, name: resolvedName };
-    localStorage.setItem(authTokenKey, firebaseUser.uid);
-    writeStoredUser(resolvedUser);
-    return resolvedUser;
-  } catch {
-    return readStoredUser();
-  }
-}
-
-function hasBackendSessionToken(token: string | null): boolean {
-  if (!token) return false;
-  return !token.startsWith('session-') && !token.startsWith('google-') && token.length > 10;
 }
 
 export function getFirebaseUserSession(): AuthUser | null {
@@ -361,7 +336,6 @@ export function getFirebaseUserSession(): AuthUser | null {
     return readStoredUser();
   }
 
-  localStorage.setItem(authTokenKey, firebaseUser.uid);
   writeStoredUser(user);
   return user;
 }
@@ -377,14 +351,13 @@ export async function destroySession(): Promise<void> {
     // Ignore sign-out errors in the browser-only deployment path.
   }
 
-  localStorage.removeItem(authTokenKey);
   localStorage.removeItem(userKey);
   localStorage.removeItem(profileKey);
   localStorage.removeItem(appStateKey);
 }
 
 export async function getAppState(): Promise<AppState> {
-  const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
+  const uid = auth.currentUser?.uid;
   if (uid) {
     const snap = await getDoc(getAppStateDoc(uid));
     if (!snap.exists()) {
@@ -415,7 +388,7 @@ export async function saveAppState(state: AppState): Promise<void> {
     writeStoredProfile(normalized.profile);
   }
 
-  const uid = auth.currentUser?.uid ?? localStorage.getItem(authTokenKey);
+  const uid = auth.currentUser?.uid;
   if (uid) {
     try {
       await setDoc(getAppStateDoc(uid), normalized, { merge: true });

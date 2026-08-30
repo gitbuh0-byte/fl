@@ -3,14 +3,29 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? 'AIzaSyCwZdAVUD6zkyTme0PMhmrS285NyZpHqnI',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? 'omnibiz-5b586.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'omnibiz-5b586',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? 'omnibiz-5b586.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '703395554490',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '1:703395554490:web:da1f918d57ea4a9f074e83',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? 'G-H86BCRMYJ5',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+const requiredFirebaseConfig = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+] as const;
+
+for (const key of requiredFirebaseConfig) {
+  if (!import.meta.env[key]) {
+    throw new Error(`Missing Firebase configuration: ${key}. Copy .env.example to .env and fill in your Firebase project values.`);
+  }
+}
 
 const app = initializeApp(firebaseConfig);
 
