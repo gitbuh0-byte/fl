@@ -6,7 +6,7 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth, db, googleProvider } from '../firebase';
+import { auth, db, googleProvider, isFirebaseConfigured } from '../firebase';
 import { Campaign, EmailCadence, FollowUpTask, Lead, ScrapedLeadResult } from '../types';
 
 export interface ProviderIntegrationSettings {
@@ -152,11 +152,27 @@ const defaultState: AppState = {
 };
 
 function getUserDoc(uid: string) {
+  if (!db) throw new Error('Firebase is not configured.');
   return doc(db, 'users', uid);
 }
 
 function getAppStateDoc(uid: string) {
+  if (!db) throw new Error('Firebase is not configured.');
   return doc(db, 'users', uid, 'app', 'state');
+}
+
+function requireFirebaseAuth() {
+  if (!auth || !isFirebaseConfigured) {
+    throw new Error('Firebase is not configured. Add your Firebase project values to .env to sign in.');
+  }
+  return auth;
+}
+
+function requireGoogleProvider() {
+  if (!googleProvider || !isFirebaseConfigured) {
+    throw new Error('Firebase is not configured. Add your Firebase project values to .env to sign in.');
+  }
+  return googleProvider;
 }
 
 function readStoredUser(): AuthUser | null {
@@ -237,7 +253,7 @@ export async function createSession(email: string, password: string): Promise<Au
     throw new Error('Password is required.');
   }
 
-  const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+  const credential = await signInWithEmailAndPassword(requireFirebaseAuth(), normalizedEmail, password);
   const firebaseUser = credential.user;
   const user = normalizeUser({
     email: firebaseUser.email ?? normalizedEmail,
@@ -281,7 +297,7 @@ export async function createAccount(fullName: string, email: string, password: s
     throw new Error('Passwords do not match.');
   }
 
-  const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+  const credential = await createUserWithEmailAndPassword(requireFirebaseAuth(), normalizedEmail, password);
   const firebaseUser = credential.user;
 
   if (firebaseUser && normalizedName !== 'Workspace Owner') {
@@ -306,24 +322,21 @@ export async function createAccount(fullName: string, email: string, password: s
   return user;
 }
 
-export async function signInWithGoogle(): Promise<AuthUser | null> {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = normalizeUser({
-      email: result.user.email,
-      name: result.user.displayName,
-    });
-    if (user) {
-      writeStoredUser(user);
-    }
-    return user;
-  } catch {
-    return null;
+export async function signInWithGoogle(): Promise<AuthUser> {
+  const result = await signInWithPopup(requireFirebaseAuth(), requireGoogleProvider());
+  const user = normalizeUser({
+    email: result.user.email,
+    name: result.user.displayName,
+  });
+  if (!user) {
+    throw new Error('Google sign-in succeeded, but no email address was provided by the Google account.');
   }
+  writeStoredUser(user);
+  return user;
 }
 
 export function getFirebaseUserSession(): AuthUser | null {
-  const firebaseUser = auth.currentUser;
+  const firebaseUser = auth?.currentUser;
   if (!firebaseUser) {
     return readStoredUser();
   }
@@ -346,7 +359,7 @@ export async function getSession(): Promise<AuthUser | null> {
 
 export async function destroySession(): Promise<void> {
   try {
-    await signOut(auth);
+    if (auth) await signOut(auth);
   } catch {
     // Ignore sign-out errors in the browser-only deployment path.
   }
@@ -357,7 +370,7 @@ export async function destroySession(): Promise<void> {
 }
 
 export async function getAppState(): Promise<AppState> {
-  const uid = auth.currentUser?.uid;
+  const uid = auth?.currentUser?.uid;
   if (uid) {
     const snap = await getDoc(getAppStateDoc(uid));
     if (!snap.exists()) {
@@ -388,7 +401,7 @@ export async function saveAppState(state: AppState): Promise<void> {
     writeStoredProfile(normalized.profile);
   }
 
-  const uid = auth.currentUser?.uid;
+  const uid = auth?.currentUser?.uid;
   if (uid) {
     try {
       await setDoc(getAppStateDoc(uid), normalized, { merge: true });
@@ -623,14 +636,16 @@ export async function scrapeSocialMedia(params: {
   }
 
   ensureProviderConfigured(profile, keyName, params.platform || 'Social media');
+  const [buyerRole, targetIndustry] = params.keyword.split(' at ');
 
   return {
     success: true,
     results: [{
       id: `social_${Date.now()}`,
-      name: params.keyword,
+      name: `${targetIndustry || params.keyword} Buyer Prospect`,
       contactPerson: 'Verified contact',
-      title: 'Growth lead',
+      title: buyerRole || 'Procurement Manager',
+      category: targetIndustry || params.keyword,
       email: `hello@${params.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '')}.com`,
       phone: '+1 (415) 555-0102',
       website: 'https://example.com',

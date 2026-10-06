@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Building2, User, Mail, Phone, Globe, DollarSign, MapPin } from 'lucide-react';
 import { Lead, LeadSource, PipelineStage } from '../types';
+import { STEEL_FABRICATION_TARGET_INDUSTRIES } from '../constants/steelFabricationIndustries';
 
 interface CreateLeadModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
   onCreateLead,
 }) => {
   const [companyName, setCompanyName] = useState('');
+  const [industry, setIndustry] = useState<string>(STEEL_FABRICATION_TARGET_INDUSTRIES[0]);
   const [contactPerson, setContactPerson] = useState('');
   const [title, setTitle] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +35,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
     const newLead: Lead = {
       id: `lead_${Date.now()}`,
       name: companyName,
+      industry,
       contactPerson: contactPerson || 'Decision Maker',
       title: title || 'Owner',
       email: email || `contact@${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
@@ -49,7 +52,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
       dealValue: Number(dealValue) || 12000,
       leadScore: 85,
       intentLevel: 'Medium',
-      tags: ['Manual Entry', 'Direct Prospect'],
+      tags: ['Manual Entry', 'Direct Prospect', industry],
       notes: notes || 'Directly added to OmniBiz CRM.',
       assignedTo: 'Sarah Connor',
       createdAt: new Date().toISOString(),
@@ -94,11 +97,25 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
             <input
               type="text"
               required
-              placeholder="e.g. Apex Health Partners"
+              placeholder="e.g. Summit Structural Contractors"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="block font-bold text-gray-300 mb-1">Steel Fabrication Buyer Industry *</label>
+            <select
+              required
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+            >
+              {STEEL_FABRICATION_TARGET_INDUSTRIES.map((targetIndustry) => (
+                <option key={targetIndustry} value={targetIndustry}>{targetIndustry}</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -116,7 +133,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               <label className="block font-bold text-gray-300 mb-1">Job Title</label>
               <input
                 type="text"
-                placeholder="e.g. Managing Partner"
+                placeholder="e.g. Procurement Manager"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
@@ -139,7 +156,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               <label className="block font-bold text-gray-300 mb-1">Email Address</label>
               <input
                 type="email"
-                placeholder="emily@apexhealth.com"
+                placeholder="jordan@summitstructural.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
@@ -152,7 +169,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({
               <label className="block font-bold text-gray-300 mb-1">Website URL</label>
               <input
                 type="text"
-                placeholder="https://apexhealth.com"
+                placeholder="https://summitstructural.com"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"

@@ -11,7 +11,7 @@ import { CreateLeadModal } from './components/CreateLeadModal';
 import { ProfilePage } from './components/ProfilePage';
 import { AuthPage } from './components/AuthPage';
 import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { auth } from './firebase';
+import { auth, isFirebaseConfigured } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { createAccount, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
 import { downloadLeadsCSV } from './utils/csvExport';
@@ -21,7 +21,7 @@ export function App() {
   const [dashboardInstance, setDashboardInstance] = useState(0);
   const [currentView, setCurrentView] = useState<AppView>(() => {
     const savedView = sessionStorage.getItem('omnibiz-current-view');
-    const hasSession = Boolean(auth.currentUser);
+    const hasSession = Boolean(auth?.currentUser);
     if (hasSession) {
       return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns' ? savedView : 'dashboard';
     }
@@ -46,7 +46,7 @@ export function App() {
   const [cadences, setCadences] = useState<import('./types').EmailCadence[]>([]);
   const [tasks, setTasks] = useState<FollowUpTask[]>([]);
   const [isStateHydrated, setIsStateHydrated] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(auth.currentUser));
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(auth?.currentUser));
   const [profile, setProfile] = useState<ProfileSettings>(() => createDefaultProfileSettings());
 
   const syncProfileFromUser = (user: { name?: string; email?: string } | null) => {
@@ -107,7 +107,14 @@ export function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    if (!auth) {
+      setIsAuthenticated(false);
+      setCurrentView('landing');
+      return;
+    }
+
+    const firebaseAuth = auth;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
       if (firebaseUser) {
         const user = {
           email: firebaseUser.email ?? 'workspace@omnibiz.local',
@@ -194,11 +201,6 @@ export function App() {
 
   const handleGoogleLogin = async () => {
     const user = await signInWithGoogle();
-    if (!user) {
-      showToast('Google sign-in was not completed. Please try again.');
-      return;
-    }
-
     syncProfileFromUser(user);
     setIsAuthenticated(true);
     setCurrentView('dashboard');
@@ -377,7 +379,7 @@ export function App() {
           sampleLeads={leads}
         />
       ) : !isAuthenticated ? (
-        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onCreateAccount={handleCreateAccount} onGoogleLogin={handleGoogleLogin} />
+        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onCreateAccount={handleCreateAccount} onGoogleLogin={handleGoogleLogin} firebaseConfigured={isFirebaseConfigured} />
       ) : (
         isProfileOpen ? (
           <ProfilePage profile={profile} onSaveProfile={handleSaveProfile} onClose={() => setIsProfileOpen(false)} />

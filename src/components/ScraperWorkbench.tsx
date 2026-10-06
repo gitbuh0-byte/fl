@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Lead, ScrapedLeadResult } from '../types';
 import { scrapeGoogleMaps, scrapeSocialMedia, scrapeWebDomain, enrichLeadWithAI } from '../services/apiService';
+import { STEEL_FABRICATION_BUYER_ROLES, STEEL_FABRICATION_TARGET_INDUSTRIES } from '../constants/steelFabricationIndustries';
 
 interface ScraperWorkbenchProps {
   onImportLead: (newLead: Lead) => void;
@@ -44,14 +45,15 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
   const [activeScraperTab, setActiveScraperTab] = useState<'maps' | 'social' | 'web' | 'ad_webhook'>('maps');
 
   // Google Maps state
-  const [mapsKeyword, setMapsKeyword] = useState('Cosmetic Dental Clinics');
+  const [targetIndustry, setTargetIndustry] = useState<string>(STEEL_FABRICATION_TARGET_INDUSTRIES[0]);
   const [mapsLocation, setMapsLocation] = useState('Austin, TX');
   const [mapsRadius, setMapsRadius] = useState(25);
   const [mapsLimit, setMapsLimit] = useState(8);
 
   // Social scraper state
-  const [socialPlatform, setSocialPlatform] = useState('LinkedIn');
-  const [socialKeyword, setSocialKeyword] = useState('VP Marketing SaaS');
+  const [socialRole, setSocialRole] = useState<string>(STEEL_FABRICATION_BUYER_ROLES[0]);
+  const socialPlatform = 'LinkedIn';
+  const socialKeyword = `${socialRole} at ${targetIndustry}`;
   const [socialLimit, setSocialLimit] = useState(6);
 
   // Web scraper state
@@ -59,10 +61,10 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
 
   // Ad Webhook state
   const [adPlatform, setAdPlatform] = useState<'Meta Ads' | 'Google Ads' | 'LinkedIn Ads' | 'TikTok Ads'>('Meta Ads');
-  const [adCampaignName, setAdCampaignName] = useState('Summer High-Growth B2B Scale');
+  const [adCampaignName, setAdCampaignName] = useState('Steel Fabrication Buyer Outreach');
   const [adLeadName, setAdLeadName] = useState('Jordan Brooks');
-  const [adLeadCompany, setAdLeadCompany] = useState('Apex Horizon Media');
-  const [adLeadEmail, setAdLeadEmail] = useState('jordan@apexhorizon.com');
+  const [adLeadCompany, setAdLeadCompany] = useState('Summit Structural Contractors');
+  const [adLeadEmail, setAdLeadEmail] = useState('jordan@summitstructural.com');
   const [adLeadPhone, setAdLeadPhone] = useState('+1 (512) 998-3410');
 
   // General scraping execution state
@@ -71,18 +73,6 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
   const [statusLog, setStatusLog] = useState<string[]>([]);
   const [scrapedResults, setScrapedResults] = useState<ScrapedLeadResult[]>([]);
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
-
-  // Quick Preset Categories for Maps
-  const PRESET_CATEGORIES = [
-    'Cosmetic Dental Clinics',
-    'Commercial HVAC Contractors',
-    'Real Estate Brokerages',
-    'B2B SaaS & Tech Startups',
-    'Law Firms & Attorneys',
-    'Med Spas & Aesthetics',
-    'E-Commerce Growth Agencies',
-    'Roofing & Solar Installers',
-  ];
 
   // Quick Preset Cities
   const PRESET_CITIES = ['Austin, TX', 'Miami, FL', 'San Francisco, CA', 'New York, NY', 'Chicago, IL', 'London, UK', 'Berlin, Germany'];
@@ -98,7 +88,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
     setStatusLog([]);
     setScrapedResults([]);
 
-    addLog(`Initiating Google Maps Places Crawler for "${mapsKeyword}" in "${mapsLocation}"...`);
+    addLog(`Initiating Google Maps Places Crawler for "${targetIndustry}" in "${mapsLocation}"...`);
     
     const interval = setInterval(() => {
       setProgressPercent((p) => {
@@ -112,7 +102,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
       addLog(`Extracting verified phone numbers, website links, and Google rating metadata...`);
 
       const response = await scrapeGoogleMaps({
-        keyword: mapsKeyword,
+        keyword: targetIndustry,
         location: mapsLocation,
         radius: mapsRadius,
         limit: mapsLimit,
@@ -140,7 +130,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
     setScrapedResults([]);
 
     addLog(`Connecting to ${socialPlatform} Social Discovery Crawler...`);
-    addLog(`Scanning profiles matching keyword: "${socialKeyword}"...`);
+    addLog(`Scanning LinkedIn profiles matching keyword: "${socialKeyword}"...`);
 
     const interval = setInterval(() => {
       setProgressPercent((p) => (p < 80 ? p + 20 : p));
@@ -194,8 +184,9 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
     const newLead: Lead = {
       id: `lead_ad_${Date.now()}`,
       name: adLeadCompany || 'Inbound Ad Lead',
+      industry: targetIndustry,
       contactPerson: adLeadName || 'Decision Maker',
-      title: 'Marketing Director',
+      title: 'Procurement Manager',
       email: adLeadEmail || 'lead@company.com',
       phone: adLeadPhone || '+1 (555) 019-2830',
       website: `https://${adLeadCompany.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
@@ -238,9 +229,11 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
 
   // Convert Scraped Item into CRM Lead
   const handleImportSingle = (item: ScrapedLeadResult) => {
+    const leadIndustry = activeScraperTab === 'maps' || activeScraperTab === 'social' ? targetIndustry : item.category;
     const newLead: Lead = {
       id: `lead_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       name: item.name,
+      industry: leadIndustry,
       contactPerson: item.contactPerson || item.name.split(' ')[0] || 'Owner',
       title: item.title || 'Managing Director',
       email: item.email || `contact@${item.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
@@ -252,7 +245,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
       socialHandles: item.socialHandles || {},
       sourceChannel: activeScraperTab === 'maps' ? 'google_maps' : activeScraperTab === 'social' ? 'social_scrape' : 'web_scrape',
       sourceDetails: {
-        searchKeyword: activeScraperTab === 'maps' ? mapsKeyword : socialKeyword,
+        searchKeyword: activeScraperTab === 'maps' ? targetIndustry : activeScraperTab === 'social' ? socialKeyword : webUrl,
         searchLocation: activeScraperTab === 'maps' ? mapsLocation : undefined,
         scrapedUrl: item.sourceUrl,
         cpl: 0,
@@ -263,7 +256,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
       intentLevel: (item.confidenceScore || 85) > 90 ? 'High' : 'Medium',
       tags: [
         activeScraperTab === 'maps' ? 'Google Maps Scraped' : activeScraperTab === 'social' ? `${socialPlatform} Scraped` : 'Web Scraped',
-        item.category || 'B2B Prospect',
+        leadIndustry || 'Verified Contact',
         'Verified Contact',
       ],
       notes: `Extracted via ${item.platform || 'Scraper Engine'}. Rating: ${item.rating || 'N/A'} (${item.reviewsCount || 0} reviews). Scraped website, phone, and social profiles.`,
@@ -291,45 +284,49 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
     const unimported = scrapedResults.filter((r) => !importedIds.has(r.id));
     if (unimported.length === 0) return;
 
-    const leadsToImport: Lead[] = unimported.map((item, idx) => ({
-      id: `lead_${Date.now()}_${idx}`,
-      name: item.name,
-      contactPerson: item.contactPerson || 'Executive',
-      title: item.title || 'Owner / Director',
-      email: item.email || `info@${item.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-      phone: item.phone || '+1 (555) 123-4567',
-      website: item.website || 'https://example.com',
-      address: item.address,
-      rating: item.rating,
-      reviewsCount: item.reviewsCount,
-      socialHandles: item.socialHandles || {},
-      sourceChannel: activeScraperTab === 'maps' ? 'google_maps' : activeScraperTab === 'social' ? 'social_scrape' : 'web_scrape',
-      sourceDetails: {
-        searchKeyword: mapsKeyword,
-        searchLocation: mapsLocation,
-        scrapedUrl: item.sourceUrl,
-        cpl: 0,
-      },
-      pipelineStage: 'new',
-      dealValue: 14000 + Math.floor(Math.random() * 12000),
-      leadScore: item.confidenceScore || 90,
-      intentLevel: 'High',
-      tags: ['Batch Scraped', item.category || 'High-Intent', 'Multi-Channel Verified'],
-      notes: `Batch extracted via OmniBiz Scraper Engine from ${item.platform || 'Crawler'}. Verified phone and social links.`,
-      assignedTo: 'Sarah Connor',
-      createdAt: new Date().toISOString(),
-      emailSequenceStatus: 'idle',
-      callStatus: 'not_called',
-      activityTimeline: [
-        {
-          id: `act_${Date.now()}_${idx}`,
-          type: 'scraped',
-          title: 'Batch Extracted and Imported to Pipeline',
-          description: 'Ready for automated email cadence & AI voice dialer outreach.',
-          timestamp: new Date().toISOString(),
+    const leadsToImport: Lead[] = unimported.map((item, idx) => {
+      const leadIndustry = activeScraperTab === 'maps' || activeScraperTab === 'social' ? targetIndustry : item.category;
+      return {
+        id: `lead_${Date.now()}_${idx}`,
+        name: item.name,
+        industry: leadIndustry,
+        contactPerson: item.contactPerson || 'Executive',
+        title: item.title || 'Owner / Director',
+        email: item.email || `info@${item.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+        phone: item.phone || '+1 (555) 123-4567',
+        website: item.website || 'https://example.com',
+        address: item.address,
+        rating: item.rating,
+        reviewsCount: item.reviewsCount,
+        socialHandles: item.socialHandles || {},
+        sourceChannel: activeScraperTab === 'maps' ? 'google_maps' : activeScraperTab === 'social' ? 'social_scrape' : 'web_scrape',
+        sourceDetails: {
+          searchKeyword: activeScraperTab === 'maps' ? targetIndustry : activeScraperTab === 'social' ? socialKeyword : webUrl,
+          searchLocation: activeScraperTab === 'maps' ? mapsLocation : undefined,
+          scrapedUrl: item.sourceUrl,
+          cpl: 0,
         },
-      ],
-    }));
+        pipelineStage: 'new',
+        dealValue: 14000 + Math.floor(Math.random() * 12000),
+        leadScore: item.confidenceScore || 90,
+        intentLevel: 'High',
+        tags: ['Batch Scraped', leadIndustry || 'Verified Contact', 'Multi-Channel Verified'],
+        notes: `Batch extracted via OmniBiz Scraper Engine from ${item.platform || 'Crawler'}. Verified phone and social links.`,
+        assignedTo: 'Sarah Connor',
+        createdAt: new Date().toISOString(),
+        emailSequenceStatus: 'idle',
+        callStatus: 'not_called',
+        activityTimeline: [
+          {
+            id: `act_${Date.now()}_${idx}`,
+            type: 'scraped',
+            title: 'Batch Extracted and Imported to Pipeline',
+            description: 'Ready for automated email cadence & AI voice dialer outreach.',
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      };
+    });
 
     onBatchImportLeads(leadsToImport);
     setImportedIds(new Set(scrapedResults.map((r) => r.id)));
@@ -430,17 +427,17 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
             <div className="space-y-1.5">
               <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest font-mono">Quick Category Presets:</span>
               <div className="flex flex-wrap gap-1.5">
-                {PRESET_CATEGORIES.map((cat) => (
+                {STEEL_FABRICATION_TARGET_INDUSTRIES.map((industry) => (
                   <button
-                    key={cat}
-                    onClick={() => setMapsKeyword(cat)}
+                    key={industry}
+                    onClick={() => setTargetIndustry(industry)}
                     className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all cursor-pointer font-mono ${
-                      mapsKeyword === cat
+                      targetIndustry === industry
                         ? 'bg-blue-600/20 text-blue-400 border-blue-500/40 font-bold'
                         : 'bg-[#161616] text-gray-400 border-[#262626] hover:text-white hover:border-[#333]'
                     }`}
                   >
-                    {cat}
+                    {industry}
                   </button>
                 ))}
               </div>
@@ -449,16 +446,18 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
               {/* Category / Keyword */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Target Business Niche</label>
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Steel Fabrication Buyer Industry</label>
                 <div className="relative">
                   <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={mapsKeyword}
-                    onChange={(e) => setMapsKeyword(e.target.value)}
-                    placeholder="e.g. Dental Clinics, Real Estate..."
-                    className="w-full bg-[#151515] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
-                  />
+                  <select
+                    value={targetIndustry}
+                    onChange={(e) => setTargetIndustry(e.target.value)}
+                    className="w-full bg-[#151515] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  >
+                    {STEEL_FABRICATION_TARGET_INDUSTRIES.map((industry) => (
+                      <option key={industry} value={industry}>{industry}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -549,7 +548,7 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
                   <Share2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Social Media Prospect Discovery</h2>
+                  <h2 className="text-base font-bold text-white">LinkedIn Buyer Prospect Discovery</h2>
                   <p className="text-xs text-gray-400">Extracts prospect handles (@username), bios, verified emails & phone numbers</p>
                 </div>
               </div>
@@ -558,35 +557,20 @@ export const ScraperWorkbench: React.FC<ScraperWorkbenchProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Platform */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Target buyer search */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Social Platform</label>
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">LinkedIn Buyer Role</label>
                 <select
-                  value={socialPlatform}
-                  onChange={(e) => setSocialPlatform(e.target.value)}
+                  value={socialRole}
+                  onChange={(e) => setSocialRole(e.target.value)}
                   className="w-full bg-[#151515] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
-                  <option value="LinkedIn">LinkedIn (Executive Profiles & Companies)</option>
-                  <option value="Instagram">Instagram (Business Accounts & Bios)</option>
-                  <option value="Twitter">X / Twitter (High Intent Keywords)</option>
-                  <option value="TikTok">TikTok (Creator & E-commerce Brands)</option>
+                  {STEEL_FABRICATION_BUYER_ROLES.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
                 </select>
-              </div>
-
-              {/* Target Keyword / Role */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Target Role, Hashtag, or Query</label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={socialKeyword}
-                    onChange={(e) => setSocialKeyword(e.target.value)}
-                    placeholder="e.g. Head of Growth SaaS, #agencyowner"
-                    className="w-full bg-[#151515] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+                <p className="mt-1.5 text-[11px] text-gray-500">Searches {socialRole} at {targetIndustry}</p>
               </div>
 
               {/* Limit */}

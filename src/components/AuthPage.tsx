@@ -7,9 +7,10 @@ interface AuthPageProps {
   onContinue: (email: string, password: string) => Promise<void>;
   onCreateAccount: (fullName: string, email: string, password: string, confirmPassword?: string) => Promise<void>;
   onGoogleLogin: () => Promise<void>;
+  firebaseConfigured: boolean;
 }
 
-export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreateAccount, onGoogleLogin }) => {
+export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreateAccount, onGoogleLogin, firebaseConfigured }) => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,6 +19,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const passwordRequirements = validatePassword(password);
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setIsSubmitting(true);
+    try {
+      await onGoogleLogin();
+    } catch (err) {
+      const errorCode = (err as { code?: string })?.code;
+      if (errorCode === 'auth/unauthorized-domain') {
+        setError('This site is not authorized for Google sign-in. Add its hostname under Firebase Authentication → Settings → Authorized domains.');
+      } else if (errorCode === 'auth/operation-not-allowed') {
+        setError('Google sign-in is disabled for this Firebase project. Enable Google under Firebase Authentication → Sign-in method.');
+      } else if (errorCode === 'auth/popup-blocked') {
+        setError('Your browser blocked the sign-in popup. Allow popups for this site and try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Google sign-in failed. Check your Firebase Authentication settings and try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,9 +105,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
             Create account
           </button>
         </div>
-        <button className="google-button" onClick={() => {
-          void onGoogleLogin();
-        }} type="button" disabled={isSubmitting}><span className="google-mark">G</span> Continue with Google</button>
+        <button className="google-button" onClick={() => void handleGoogleLogin()} type="button" disabled={isSubmitting || !firebaseConfigured}><span className="google-mark">G</span> {isSubmitting ? 'Connecting to Google…' : 'Continue with Google'}</button>
+        {!firebaseConfigured && <p role="status" className="auth-error">Google sign-in needs Firebase configuration. Create a local `.env` from `.env.example`, add the Firebase web app settings, enable Google in Firebase Authentication, and restart the app.</p>}
         <div className="auth-divider"><span>{mode === 'signup' ? 'or create your account' : 'or continue with email'}</span></div>
         <form onSubmit={handleSubmit}>
           {mode === 'signup' && (
@@ -97,7 +118,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack, onContinue, onCreate
             <label className="auth-label">Confirm password<div className="auth-input"><Mail size={15} /><input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm your password" required minLength={8} /></div></label>
           )}
           {password && passwordRequirements && <p className="auth-error" style={{ marginTop: 8 }}>{passwordRequirements}</p>}
-          <button className="auth-submit" type="submit" disabled={isSubmitting}>{mode === 'signup' ? 'Create account' : 'Continue with email'} <ArrowRight size={15} /></button>
+          <button className="auth-submit" type="submit" disabled={isSubmitting || !firebaseConfigured}>{mode === 'signup' ? 'Create account' : 'Continue with email'} <ArrowRight size={15} /></button>
         </form>
         {error && <p role="alert" className="auth-error">{error}</p>}
         <small className="auth-legal">By continuing, you agree to the OmniBiz terms and privacy policy.</small>

@@ -16,6 +16,7 @@ import {
   Globe
 } from 'lucide-react';
 import { Campaign } from '../types';
+import { STEEL_FABRICATION_TARGET_INDUSTRIES } from '../constants/steelFabricationIndustries';
 
 interface CampaignsManagerProps {
   campaigns: Campaign[];
@@ -37,7 +38,7 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState<'meta_ads' | 'google_ads' | 'linkedin_ads' | 'tiktok_ads'>('meta_ads');
   const [budget, setBudget] = useState(3000);
-  const [targetAudience, setTargetAudience] = useState('Dental Clinic Owners & Practice Managers');
+  const [targetAudience, setTargetAudience] = useState('Procurement & project decision-makers at commercial construction & general contractors');
   const [objective, setObjective] = useState('High-Intent Phone & Email Form Submissions');
 
   const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend ?? (c as any).spent ?? 0), 0);
@@ -265,7 +266,7 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Q4 High Intent Dental Retargeting"
+                  placeholder="e.g. Structural Steel Buyer Outreach"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
@@ -299,13 +300,17 @@ export const CampaignsManager: React.FC<CampaignsManagerProps> = ({
               </div>
 
               <div>
-                <label className="block text-gray-400 font-bold mb-1">Target Audience Persona</label>
-                <input
-                  type="text"
+                <label className="block text-gray-400 font-bold mb-1">Steel Fabrication Buyer Audience</label>
+                <select
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
                   className="w-full bg-[#161616] border border-[#262626] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                />
+                >
+                  {STEEL_FABRICATION_TARGET_INDUSTRIES.map((industry) => {
+                    const audience = `Procurement & project decision-makers at ${industry.toLowerCase()}`;
+                    return <option key={industry} value={audience}>{audience}</option>;
+                  })}
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#222]">

@@ -47,6 +47,7 @@ export interface Lead {
   address?: string;
   city?: string;
   country?: string;
+  industry?: string;
   rating?: number;
   reviewsCount?: number;
   socialHandles: SocialHandles;

@@ -358,6 +358,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               </div>
               <p className="text-xs text-gray-400 mt-0.5 font-mono">
                 {lead.contactPerson || 'Decision Maker'} • {lead.title || 'Executive'}
+                {lead.industry ? ` • ${lead.industry}` : ''}
               </p>
             </div>
           </div>

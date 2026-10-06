@@ -431,7 +431,7 @@ app.post('/api/campaigns/webhook', (req, res) => {
 // Google Maps Lead Scraper Endpoint
 app.post('/api/scrape/maps', async (req, res) => {
   try {
-    const { keyword = 'Dental Clinics', location = 'Austin, TX', radius = 25, limit = 8 } = req.body;
+    const { keyword = 'Commercial Construction & General Contractors', location = 'Austin, TX', radius = 25, limit = 8 } = req.body;
 
     const mockDatabases: Record<string, any[]> = {
       default: [
@@ -448,15 +448,15 @@ app.post('/api/scrape/maps', async (req, res) => {
           phonePrefix: '+1 (512) 690-',
         },
         {
-          nameSuffix: 'Partners Dental',
+          nameSuffix: 'Structural Contractors',
           streetBase: 'Lamar St',
           domainExt: '.org',
           phonePrefix: '+1 (512) 732-',
         },
         {
-          nameSuffix: 'Tech & Care Clinic',
+          nameSuffix: 'Industrial Works',
           streetBase: 'Guadalupe St',
-          domainExt: '.health',
+          domainExt: '.com',
           phonePrefix: '+1 (512) 991-',
         },
         {
@@ -483,7 +483,7 @@ app.post('/api/scrape/maps', async (req, res) => {
     const ai = getGemini();
     if (ai) {
       try {
-        const prompt = `Generate a JSON array of ${parsedLimit} realistic business leads matching the search query: "${keyword}" in "${location}".
+        const prompt = `Generate a JSON array of ${parsedLimit} realistic business leads matching the search query: "${keyword}" in "${location}". Return only likely buyers of custom steel fabrication services in that industry, such as companies that need structural steel, platforms, frames, equipment, or pipework. Exclude unrelated businesses and steel fabrication competitors.
 For each lead, provide:
 - "name": Business name
 - "category": Exact business niche
@@ -494,7 +494,7 @@ For each lead, provide:
 - "website": realistic https website url
 - "email": contact email address (e.g. info@domain.com or hello@domain.com)
 - "contactPerson": full name of owner/decision maker
-- "title": e.g. Founder, Clinic Director, CEO, Managing Partner
+- "title": e.g. Procurement Manager, Project Manager, Plant Manager, Operations Director
 - "socialHandles": object containing realistic handles for "linkedin" (e.g. https://linkedin.com/company/...), "instagram" (e.g. @...), "facebook", "twitter"
 - "confidenceScore": number between 88 and 99
 
@@ -557,7 +557,7 @@ Respond ONLY with the raw JSON array.`;
         website: `https://www.${slug}.com`,
         email: `contact@${slug}.com`,
         contactPerson: `${firstName} ${lastName}`,
-        title: i % 3 === 0 ? 'Founder & CEO' : i % 2 === 0 ? 'Managing Director' : 'Practice Lead',
+        title: i % 3 === 0 ? 'Founder & CEO' : i % 2 === 0 ? 'Managing Director' : 'Project Manager',
         socialHandles: {
           linkedin: `https://linkedin.com/company/${slug}`,
           instagram: `@${slug}.official`,
@@ -587,13 +587,13 @@ Respond ONLY with the raw JSON array.`;
 // Social Media Lead Scraper Endpoint (LinkedIn, Instagram, X, TikTok)
 app.post('/api/scrape/social', async (req, res) => {
   try {
-    const { platform = 'LinkedIn', keyword = 'Marketing Director SaaS', limit = 6 } = req.body;
+    const { platform = 'LinkedIn', keyword = 'Procurement Manager at Commercial Construction & General Contractors', limit = 6 } = req.body;
     const count = Math.min(Number(limit) || 6, 20);
 
     const ai = getGemini();
     if (ai) {
       try {
-        const prompt = `Generate a JSON array of ${count} realistic B2B/B2C prospect profiles scraped from ${platform} matching search topic: "${keyword}".
+        const prompt = `Generate a JSON array of ${count} realistic B2B prospect profiles from ${platform} matching search topic: "${keyword}". Include decision-makers at companies that buy custom steel fabrication services; exclude unrelated industries, consumer creators, and steel fabrication competitors.
 For each lead include:
 - "name": Business or Creator/Executive full name
 - "contactPerson": Person name
@@ -639,12 +639,12 @@ Return ONLY raw JSON array.`;
 
     // Heuristic generator
     const personas = [
-      { name: 'Alex Rivera', role: 'Head of Growth & Performance', co: 'ScaleWave Media', fol: '28.4k' },
-      { name: 'Dr. Sophia Lindqvist', role: 'Chief Medical Officer & Founder', co: 'Nordic Health Group', fol: '14.2k' },
-      { name: 'Tariq Al-Mansoor', role: 'VP of Commercial Strategy', co: 'AeroSync Logistics', fol: '52.1k' },
-      { name: 'Maya Sterling', role: 'E-commerce Brand Architect', co: 'Sterling DTC Brands', fol: '89.6k' },
-      { name: 'Liam O’Connor', role: 'Senior Partner & Acquisition Lead', co: 'Apex Capital Ventures', fol: '19.8k' },
-      { name: 'Hannah Zhang', role: 'Director of RevOps & Pipeline', co: 'CloudMatrix AI', fol: '34.7k' },
+      { name: 'Alex Rivera', role: 'Procurement Manager', co: 'Summit Structural Contractors', fol: '28.4k' },
+      { name: 'Sophia Lindqvist', role: 'Plant Operations Director', co: 'Northline Industrial Works', fol: '14.2k' },
+      { name: 'Tariq Al-Mansoor', role: 'Capital Projects Director', co: 'IronGate Energy Infrastructure', fol: '52.1k' },
+      { name: 'Maya Sterling', role: 'Facilities & Procurement Lead', co: 'Harborline Distribution Centers', fol: '89.6k' },
+      { name: 'Liam O’Connor', role: 'Construction Project Executive', co: 'Apex Commercial Builders', fol: '19.8k' },
+      { name: 'Hannah Zhang', role: 'Engineering & Operations Manager', co: 'Cedar Ridge Water Systems', fol: '34.7k' },
     ];
 
     const results = personas.slice(0, count).map((p, idx) => {
@@ -656,7 +656,7 @@ Return ONLY raw JSON array.`;
         contactPerson: p.name,
         title: p.role,
         category: keyword,
-        bio: `${p.role} at @${coHandle}. Scaling outbound sales, demand generation, and multi-channel pipeline.`,
+        bio: `${p.role} at @${coHandle}. Sourcing structural steel, custom metalwork, and fabrication services for active projects.`,
         followers: p.fol,
         email: `${handle}@${coHandle}.com`,
         phone: `+1 (415) ${550 + idx * 32}-${1000 + idx * 421}`,
