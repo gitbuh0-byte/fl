@@ -22,6 +22,7 @@ import architecturalImage from './assets/images/arch.webp';
 import laserImage from './assets/images/laser.webp';
 import automotiveImage from './assets/images/auto.webp';
 import electricalImage from './assets/images/electrical.webp';
+import heroVideo from './assets/videos/hero.mp4';
 
 const phoneNumber = '0722 210 838';
 const phoneLink = 'tel:+254722210838';
@@ -130,12 +131,10 @@ export default function App() {
       </header>
 
       <main>
-        <section id="hero" className="hero-section" style={{ backgroundImage: `url("${img03}")` }}>
-          {import.meta.env.MODE !== 'wordpress' && (
-            <video className="hero-video" autoPlay muted loop playsInline poster={img03} aria-hidden="true">
-              <source src="/videos/vid1.mp4" type="video/mp4" />
-            </video>
-          )}
+        <section id="hero" className="hero-section">
+          <video className="hero-video" autoPlay muted loop playsInline poster={img03} aria-hidden="true">
+            <source src={heroVideo} type="video/mp4" />
+          </video>
           <div className="hero-shade" />
           <div className="page-width hero-inner">
             <div className="hero-copy">
