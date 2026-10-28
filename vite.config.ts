@@ -8,13 +8,13 @@ export default defineConfig(({mode}) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    base: './',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
     },
     ...(wordpressBuild && {
-      base: './',
       publicDir: false,
       build: {
         outDir: path.resolve(__dirname, 'wordpress-theme/build'),
