@@ -1,7 +1,6 @@
 {
-  "name": "OmniBiz CRM & AI Prospecting Engine",
-  "description": "Multi-channel lead scraper from Google Maps, social media, and ad campaigns with automated email/call follow-ups, sales pipeline Kanban, and real-time analytics.",
-  "requestFramePermissions": ["microphone"],
+  "name": "Forgelinea",
+  "description": "Premium custom steel fabrication, precision laser cutting, and industrial engineering solutions.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
-

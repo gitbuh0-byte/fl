@@ -1,74 +1,139 @@
-import React, { useState } from 'react';
-import { BarChart3, Download, Globe2, Home, Layers3, Mail, Megaphone, Menu, Plus, Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, X, ArrowUpRight } from 'lucide-react';
+import logoLight from '../assets/images/logoo.png';
+import logoDark from '../assets/images/logoo1.png';
 
 interface HeaderProps {
-  currentView: 'landing' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns';
-  onNavigate: (view: 'landing' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns') => void;
-  leadsCount: number;
-  pendingFollowupsCount: number;
-  onOpenNewLeadModal: () => void;
-  onOpenQuickScrape?: () => void;
-  onDownloadCSV?: () => void;
-  searchQuery?: string;
-  setSearchQuery?: (query: string) => void;
-  onOpenProfile?: () => void;
-  onLogout?: () => void;
-  profileName?: string;
+  onNavClick: (sectionId: string) => void;
+  activeSection: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  currentView,
-  onNavigate,
-  leadsCount,
-  pendingFollowupsCount,
-  onOpenNewLeadModal,
-  onOpenQuickScrape,
-  onDownloadCSV,
-  searchQuery = '',
-  setSearchQuery,
-  onOpenProfile,
-  onLogout,
-  profileName = 'Workspace Owner',
-}) => {
-  const [internalSearch, setInternalSearch] = useState('');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const query = searchQuery || internalSearch;
-  const setQuery = setSearchQuery || setInternalSearch;
-  const initials = profileName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || '')
-    .join('') || 'U';
-  const navItems = [
-    { id: 'dashboard' as const, label: 'Overview', icon: <BarChart3 size={15} /> },
-    { id: 'scraper' as const, label: 'Find leads', icon: <Globe2 size={15} />, badge: 'LIVE' },
-    { id: 'pipeline' as const, label: 'Pipeline', icon: <Layers3 size={15} />, count: leadsCount },
-    { id: 'automation' as const, label: 'Follow-ups', icon: <Mail size={15} />, count: pendingFollowupsCount || undefined },
-    { id: 'campaigns' as const, label: 'Campaigns', icon: <Megaphone size={15} /> },
+export default function Header({ onNavClick, activeSection }: HeaderProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinks = [
+    { name: 'Services', id: 'services' },
+    { name: 'Portfolio', id: 'gallery' },
+    { name: 'Standards', id: 'milestones' },
+    { name: 'Contact', id: 'contact' }
   ];
 
+  const handleLinkClick = (id: string) => {
+    setIsOpen(false);
+    onNavClick(id);
+  };
+
   return (
-    <header className="workspace-header">
-      <div className="workspace-header-inner">
-        <button className="workspace-brand" onClick={() => onNavigate('landing')} title="Back to landing page">
-          <span className="workspace-mark">O</span>
-          <span>OmniBiz</span>
-        </button>
-        <button className="workspace-menu-toggle" style={{ backgroundColor: '#0F1C2E', borderColor: '#0F1C2E', color: '#FFFFFF' }} onClick={() => setIsMenuOpen((open) => !open)} aria-label={isMenuOpen ? 'Close workspace menu' : 'Open workspace menu'} aria-expanded={isMenuOpen}>{isMenuOpen ? <X size={18} /> : <Menu size={18} />}</button>
-        <nav className={`workspace-nav${isMenuOpen ? ' is-open' : ''}`} aria-label="Workspace navigation">
-          <button className={currentView === 'landing' ? 'active' : ''} onClick={() => { onNavigate('landing'); setIsMenuOpen(false); }}><Home size={15} /><span>Home</span></button>
-          {navItems.map((item) => <button key={item.id} className={currentView === item.id ? 'active' : ''} onClick={() => { onNavigate(item.id); setIsMenuOpen(false); }}>{item.icon}<span>{item.label}</span>{item.badge && <b className="workspace-live">{item.badge}</b>}{item.count !== undefined && <b className="workspace-count">{item.count}</b>}</button>)}
-        </nav>
-        <div className="workspace-actions">
-          <label className="workspace-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search leads" /></label>
-          {onDownloadCSV && <button className="workspace-icon-action" onClick={onDownloadCSV} title="Export your leads as a CSV file" aria-label="Export your leads as a CSV file"><Download size={15} /></button>}
-          <button className="workspace-scrape" onClick={onOpenQuickScrape ? onOpenQuickScrape : () => onNavigate('scraper')} title="Find new leads"><Globe2 size={15} /> <span>Find leads</span></button>
-          <button className="workspace-add" onClick={onOpenNewLeadModal} title="Add a lead manually"><Plus size={15} /> <span>Add lead</span></button>
-          <button className="workspace-profile" onClick={onOpenProfile} title="Open profile">{initials}</button>
-          {onLogout && <button className="workspace-icon-action" onClick={onLogout} title="Sign out of OmniBiz">Log out</button>}
+    <header
+      id="header-nav"
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        scrolled 
+          ? 'bg-dark-bg/80 backdrop-blur-md border-b border-card-border/60 py-4 shadow-lg' 
+          : 'bg-transparent py-6'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+        {/* Logo / Brand */}
+        <div 
+          className="flex items-center space-x-3 cursor-pointer group"
+          onClick={() => handleLinkClick('hero')}
+        >
+          <img 
+            src={scrolled ? logoLight : logoDark} 
+            alt="Forgelinea Logo" 
+            referrerPolicy="no-referrer"
+            className="w-16 h-16 object-contain"
+          />
+          <div>
+            <span className={`font-display font-bold text-xl tracking-tight ${scrolled ? 'text-slate-900' : 'text-white'}`}>
+              forgelinea engineering
+            </span>
+          </div>
         </div>
+
+        {/* Center - Navigation Links */}
+        <nav className="hidden lg:flex items-center space-x-8">
+          {navLinks.map((link) => (
+            <button
+              key={link.id}
+              onClick={() => handleLinkClick(link.id)}
+              className={`font-sans text-sm tracking-wide transition-colors duration-200 relative py-1 cursor-pointer ${
+                activeSection === link.id 
+                  ? 'text-accent-blue font-semibold' 
+                  : scrolled 
+                    ? 'text-slate-600 hover:text-slate-900' 
+                    : 'text-white hover:text-slate-200'
+              }`}
+            >
+              {link.name}
+              {activeSection === link.id && (
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-accent-blue rounded-full" />
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Right - Contact CTA Button */}
+        <div className="hidden lg:block">
+          <button
+            onClick={() => handleLinkClick('contact')}
+            className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden font-display text-sm font-semibold tracking-wide text-white bg-slate-900 hover:text-white border border-slate-900 hover:border-accent-blue transition-all duration-300 cursor-pointer shadow-md hover:shadow-accent-blue/20"
+          >
+            <div className="absolute inset-0 w-0 bg-accent-blue transition-all duration-300 ease-out group-hover:w-full" />
+            <span className="relative flex items-center space-x-1.5 z-10">
+              <span>Let's Talk</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </span>
+          </button>
+        </div>
+
+        {/* Mobile menu trigger */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`lg:hidden p-2 focus:outline-none transition-colors cursor-pointer ${scrolled ? 'text-slate-600 hover:text-slate-900' : 'text-white hover:text-slate-200'}`}
+          aria-label="Toggle Menu"
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </div>
+
+      {/* Mobile Drawer menu */}
+      {isOpen && (
+        <div className="lg:hidden absolute top-full left-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-200 px-6 py-8 shadow-xl flex flex-col space-y-6">
+          <nav className="flex flex-col space-y-4">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleLinkClick(link.id)}
+                className={`text-left font-sans text-base py-2 border-b border-slate-100 transition-colors ${
+                  activeSection === link.id 
+                    ? 'text-accent-blue font-semibold' 
+                    : 'text-slate-700 hover:text-slate-900'
+                }`}
+              >
+                {link.name}
+              </button>
+            ))}
+          </nav>
+          
+          <button
+            onClick={() => handleLinkClick('contact')}
+            className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl bg-slate-900 text-white font-display font-semibold tracking-wide hover:bg-accent-blue hover:text-white transition-all cursor-pointer"
+          >
+            <span>Let's Talk</span>
+            <ArrowUpRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </header>
   );
-};
+}

@@ -1,484 +1,294 @@
-import React, { useEffect, useState } from 'react';
-import { Header } from './components/Header';
-import { LandingPage } from './components/LandingPage';
-import { DashboardFresh } from './components/DashboardFresh';
-import { ScraperWorkbench } from './components/ScraperWorkbench';
-import { PipelineKanban } from './components/PipelineKanban';
-import { AutomationSequences } from './components/AutomationSequences';
-import { CampaignsManager } from './components/CampaignsManager';
-import { LeadDetailModal } from './components/LeadDetailModal';
-import { CreateLeadModal } from './components/CreateLeadModal';
-import { ProfilePage } from './components/ProfilePage';
-import { AuthPage } from './components/AuthPage';
-import { Lead, PipelineStage, Campaign, FollowUpTask } from './types';
-import { auth, isFirebaseConfigured } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { createAccount, createDefaultProfileSettings, createSession, destroySession, getAppState, getSession, ingestCampaignLead, ProfileSettings, saveAppState, signInWithGoogle } from './services/apiService';
-import { downloadLeadsCSV } from './utils/csvExport';
+import { useState } from 'react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Clock3,
+  Facebook,
+  Instagram,
+  Linkedin,
+  MapPin,
+  Menu,
+  Phone,
+  X,
+} from 'lucide-react';
+import logo from './assets/images/logoo1.png';
+import img0 from './assets/images/img0.webp';
+import img01 from './assets/images/img01.webp';
+import img02 from './assets/images/img02.webp';
+import img03 from './assets/images/img03.webp';
+import customImage from './assets/images/custom.webp';
+import industrialImage from './assets/images/industrial.webp';
+import architecturalImage from './assets/images/arch.webp';
+import laserImage from './assets/images/laser.webp';
+import automotiveImage from './assets/images/auto.webp';
+import electricalImage from './assets/images/electrical.webp';
 
-export function App() {
-  type AppView = 'landing' | 'auth' | 'dashboard' | 'scraper' | 'pipeline' | 'automation' | 'campaigns';
-  const [dashboardInstance, setDashboardInstance] = useState(0);
-  const [currentView, setCurrentView] = useState<AppView>(() => {
-    const savedView = sessionStorage.getItem('omnibiz-current-view');
-    const hasSession = Boolean(auth?.currentUser);
-    if (hasSession) {
-      return savedView === 'dashboard' || savedView === 'scraper' || savedView === 'pipeline' || savedView === 'automation' || savedView === 'campaigns' ? savedView : 'dashboard';
-    }
-    return 'landing';
-  });
+const phoneNumber = '0722 210 838';
+const phoneLink = 'tel:+254722210838';
+const quoteWhatsAppLink = `https://wa.me/254722210838?text=${encodeURIComponent(
+  'Hello, I would like to request a quote for a steel fabrication project.',
+)}`;
 
-  useEffect(() => {
-    sessionStorage.setItem('omnibiz-current-view', currentView);
-  }, [currentView]);
+const projects = [
+  { image: img03, title: 'Structural Steelwork', category: 'Structural fabrication' },
+  { image: img02, title: 'Staircases & Railings', category: 'Architectural metalwork' },
+  { image: img0, title: 'Site Installation', category: 'Project delivery' },
+  { image: industrialImage, title: 'Industrial Platforms', category: 'Access structures' },
+  { image: img01, title: 'Steel Canopy Structures', category: 'Structural fabrication' },
+  { image: customImage, title: 'Custom Steel Components', category: 'Precision fabrication' },
+];
 
-  const handleNavigate = (view: AppView) => {
-    setIsProfileOpen(false);
-    if (view === 'dashboard' && currentView === 'dashboard') {
-      setDashboardInstance((instance) => instance + 1);
-    }
-    setCurrentView(view);
-  };
+const services = [
+  {
+    number: '01',
+    title: 'Structural steel',
+    description: 'Columns, beams, trusses, mezzanines, platforms, roof structures and verified-tolerance reinforcement.',
+    image: img03,
+  },
+  {
+    number: '02',
+    title: 'Architectural metalwork',
+    description: 'Gates, balustrades, staircases, pergolas, canopies, decorative screens and custom interiors.',
+    image: architecturalImage,
+  },
+  {
+    number: '03',
+    title: 'Specialized welding',
+    description: 'Expert MIG, TIG and arc welding for aluminum, stainless steel, copper, brass, alloys and repairs.',
+    image: img01,
+  },
+  {
+    number: '04',
+    title: 'Laser cutting',
+    description: 'High-precision CNC cutting for mild steel, stainless, specialty components, signage and prototypes.',
+    image: laserImage,
+  },
+  {
+    number: '05',
+    title: 'Automotive engineering',
+    description: 'Custom grills, bull bars, chassis modifications, brackets, utility bodies and exhaust systems.',
+    image: automotiveImage,
+  },
+  {
+    number: '06',
+    title: 'Electrical fabrication',
+    description: 'Trunks, conduits, junction boxes, cable management, equipment frames and power systems.',
+    image: electricalImage,
+  },
+];
 
-  // Application Data State
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [cadences, setCadences] = useState<import('./types').EmailCadence[]>([]);
-  const [tasks, setTasks] = useState<FollowUpTask[]>([]);
-  const [isStateHydrated, setIsStateHydrated] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(auth?.currentUser));
-  const [profile, setProfile] = useState<ProfileSettings>(() => createDefaultProfileSettings());
+const navigation = [
+  { label: 'Home', id: 'hero' },
+  { label: 'Services', id: 'services' },
+  { label: 'Our Work', id: 'projects' },
+  { label: 'About Us', id: 'about' },
+  { label: 'Contact', id: 'contact' },
+];
 
-  const syncProfileFromUser = (user: { name?: string; email?: string } | null) => {
-    if (!user) return;
+export default function App() {
+  const [menuOpen, setMenuOpen] = useState(false);
 
-    const nextName = user.name?.trim() || profile.name || user.email?.split('@')[0] || 'Workspace Owner';
-    const nextEmail = user.email?.trim() || profile.email || '';
-
-    setProfile((current) => createDefaultProfileSettings({
-      ...current,
-      name: nextName,
-      email: nextEmail,
-    }));
-  };
-
-  // Modal / Drawer Selection State
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const [leadModalInitialTab, setLeadModalInitialTab] = useState<'overview' | 'email' | 'call' | 'notes'>('overview');
-  const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Notification Toast State
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const storedProfile = localStorage.getItem('omnibiz-profile');
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile) as Partial<ProfileSettings>;
-        const hydrated = createDefaultProfileSettings(parsed);
-        setProfile(hydrated);
-        return;
-      } catch {
-        setProfile(createDefaultProfileSettings());
-      }
-    }
-
-    const storedUser = localStorage.getItem('omnibiz-user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser) as { name?: string; email?: string };
-        syncProfileFromUser(parsed);
-      } catch {
-        // ignore malformed user session data
-      }
-    }
-  }, []);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
-
-  useEffect(() => {
-    if (!auth) {
-      setIsAuthenticated(false);
-      setCurrentView('landing');
-      return;
-    }
-
-    const firebaseAuth = auth;
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
-      if (firebaseUser) {
-        const user = {
-          email: firebaseUser.email ?? 'workspace@omnibiz.local',
-          name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'Workspace Owner',
-        };
-        setIsAuthenticated(true);
-        setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? 'dashboard' : prev));
-        syncProfileFromUser(user);
-        return;
-      }
-
-      localStorage.removeItem('omnibiz-user');
-      setIsAuthenticated(false);
-      setCurrentView((prev) => (prev === 'landing' || prev === 'auth' ? prev : 'landing'));
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && (currentView === 'landing' || currentView === 'auth')) {
-      setCurrentView('dashboard');
-    }
-  }, [isAuthenticated, currentView]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    getAppState()
-      .then((savedState) => {
-        setLeads(savedState.leads);
-        setCampaigns(savedState.campaigns);
-        setCadences(savedState.cadences);
-        setTasks(savedState.tasks);
-        if (savedState.profile) {
-          setProfile((currentProfile) => createDefaultProfileSettings({
-            ...currentProfile,
-            ...savedState.profile,
-            notifications: {
-              ...currentProfile.notifications,
-              ...savedState.profile.notifications,
-            },
-            integrations: {
-              ...currentProfile.integrations,
-              ...savedState.profile.integrations,
-            },
-          }));
-        }
-      })
-      .catch((error) => {
-        console.error('App state load error:', error);
-        showToast('Could not load saved CRM data. Using local seed data.');
-      })
-      .finally(() => setIsStateHydrated(true));
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isStateHydrated) return;
-
-    saveAppState({ leads, campaigns, cadences, tasks, profile }).catch((error) => {
-      console.error('App state save error:', error);
-      showToast('Could not save the latest CRM changes.');
-    });
-  }, [leads, campaigns, cadences, tasks, profile, isStateHydrated]);
-
-  const handleDownloadAllLeads = () => {
-    downloadLeadsCSV(leads, `omnibiz_all_leads_${new Date().toISOString().split('T')[0]}.csv`);
-    showToast(`Exported ${leads.length} leads to CSV successfully!`);
-  };
-
-  const handleLogin = async (email: string, password: string) => {
-    const user = await createSession(email, password);
-    setIsAuthenticated(true);
-    syncProfileFromUser(user);
-    setCurrentView('dashboard');
-  };
-
-  const handleCreateAccount = async (fullName: string, email: string, password: string, confirmPassword?: string) => {
-    const user = await createAccount(fullName, email, password, confirmPassword);
-    setIsAuthenticated(true);
-    syncProfileFromUser(user);
-    setCurrentView('dashboard');
-  };
-
-  const handleGoogleLogin = async () => {
-    const user = await signInWithGoogle();
-    syncProfileFromUser(user);
-    setIsAuthenticated(true);
-    setCurrentView('dashboard');
-  };
-
-  const handleLogout = async () => {
-    await destroySession();
-    setIsAuthenticated(false);
-    setIsStateHydrated(false);
-    setIsProfileOpen(false);
-    setIsLeadModalOpen(false);
-    setCurrentView('landing');
-  };
-
-  const handleSaveProfile = (nextProfile: ProfileSettings) => {
-    const normalizedProfile = createDefaultProfileSettings(nextProfile);
-    setProfile(normalizedProfile);
-    void saveAppState({ leads, campaigns, cadences, tasks, profile: normalizedProfile });
-    showToast('Profile changes saved.');
-  };
-
-  // Filtered Leads according to search query
-  const displayedLeads = leads.filter((l) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      l.name.toLowerCase().includes(q) ||
-      (l.contactPerson && l.contactPerson.toLowerCase().includes(q)) ||
-      (l.phone && l.phone.includes(q)) ||
-      (l.website && l.website.toLowerCase().includes(q)) ||
-      (l.tags && l.tags.some(t => t.toLowerCase().includes(q)))
-    );
-  });
-
-  // Lead Operations
-  const handleImportLead = (newLead: Lead) => {
-    setLeads((prev) => [newLead, ...prev]);
-    showToast(`Lead "${newLead.name}" imported to CRM Pipeline!`);
-  };
-
-  const handleBatchImportLeads = (newLeads: Lead[]) => {
-    setLeads((prev) => [...newLeads, ...prev]);
-    showToast(`Batch imported ${newLeads.length} leads into CRM Pipeline!`);
-  };
-
-  const handleUpdateLead = (updated: Lead) => {
-    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-    if (selectedLead?.id === updated.id) {
-      setSelectedLead(updated);
-    }
-  };
-
-  const handleUpdateLeadStage = (leadId: string, newStage: PipelineStage) => {
-    setLeads((prev) =>
-      prev.map((l) => {
-        if (l.id === leadId) {
-          return {
-            ...l,
-            pipelineStage: newStage,
-            activityTimeline: [
-              {
-                id: `act_${Date.now()}`,
-                type: 'stage_changed',
-                title: `Moved to ${newStage.replace('_', ' ').toUpperCase()}`,
-                description: `Pipeline stage updated.`,
-                timestamp: new Date().toISOString(),
-              },
-              ...l.activityTimeline,
-            ],
-          };
-        }
-        return l;
-      })
-    );
-  };
-
-  const handleOpenLeadDetail = (lead: Lead, initialTab: 'overview' | 'email' | 'call' | 'notes' = 'overview') => {
-    setSelectedLead(lead);
-    setLeadModalInitialTab(initialTab);
-    setIsLeadModalOpen(true);
-  };
-
-  const handleSelectLeadById = (leadId: string) => {
-    const found = leads.find((l) => l.id === leadId);
-    if (found) {
-      handleOpenLeadDetail(found, 'overview');
-    }
-  };
-
-  const handleLaunchDialerForLead = (lead: Lead) => {
-    handleOpenLeadDetail(lead, 'call');
-  };
-
-  // Task Operations
-  const handleCompleteTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, completed: true } : t))
-    );
-    showToast('Task marked as completed!');
-  };
-
-  const handleCreateTask = (task: FollowUpTask) => {
-    setTasks((prev) => [task, ...prev]);
-    showToast('Follow-up task created!');
-  };
-
-  const handleRescheduleTask = (taskId: string, dueDate: string) => {
-    setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, dueDate } : task));
-    showToast(`Task rescheduled to ${dueDate}.`);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
-    showToast('Follow-up task deleted.');
-  };
-
-  // Campaign Operations
-  const handleToggleCampaignStatus = (campId: string) => {
-    setCampaigns((prev) =>
-      prev.map((c) =>
-        c.id === campId
-          ? { ...c, status: c.status === 'active' ? 'paused' : 'active' }
-          : c
-      )
-    );
-  };
-
-  const handleCreateCampaign = (camp: Campaign) => {
-    setCampaigns((prev) => [camp, ...prev]);
-    showToast(`Campaign "${camp.name}" created with webhook ingestor!`);
-  };
-
-  const handleSimulateWebhookLead = async (camp: Campaign) => {
-    try {
-      const result = await ingestCampaignLead(camp.id, {
-        eventId: `sim_${Date.now()}`,
-        name: 'Alex Rivera',
-        company: `${camp.platform} Inbound Prospect`,
-        contactPerson: 'Alex Rivera',
-        email: `alex.rivera.${Date.now()}@prospectinc.com`,
-        phone: '+1 (512) 887-1920',
-      });
-      setLeads((prev) => [result.lead, ...prev]);
-      setCampaigns((prev) => prev.map((item) => item.id === result.campaign.id ? result.campaign : item));
-      showToast(`Instant Lead Captured from ${camp.name}!`);
-    } catch (error) {
-      console.error('Campaign webhook error:', error);
-      showToast('Could not capture the campaign lead.');
-    }
+  const go = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setMenuOpen(false);
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white ${currentView === 'landing' ? '' : 'dashboard-shell'}`}>
-      {/* Bento Header & Telemetry Bar (Shown when inside the app) */}
-      {currentView !== 'landing' && currentView !== 'auth' && (
-        <Header
-          currentView={currentView}
-          onNavigate={handleNavigate}
-          leadsCount={leads.length}
-          pendingFollowupsCount={tasks.filter((t) => !t.completed).length}
-          onOpenNewLeadModal={() => setIsCreateLeadModalOpen(true)}
-          onOpenQuickScrape={() => setCurrentView('scraper')}
-          onDownloadCSV={handleDownloadAllLeads}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onOpenProfile={() => setIsProfileOpen(true)}
-          onLogout={() => void handleLogout()}
-          profileName={profile.name || profile.email || 'Workspace Owner'}
-        />
-      )}
-
-      {/* Main Bento Canvas Area */}
-      {currentView === 'landing' && !isAuthenticated ? (
-        <LandingPage
-          onEnterApp={(targetView) => setCurrentView(targetView || 'auth')}
-          sampleLeads={leads}
-        />
-      ) : !isAuthenticated ? (
-        <AuthPage onBack={() => setCurrentView('landing')} onContinue={handleLogin} onCreateAccount={handleCreateAccount} onGoogleLogin={handleGoogleLogin} firebaseConfigured={isFirebaseConfigured} />
-      ) : (
-        isProfileOpen ? (
-          <ProfilePage profile={profile} onSaveProfile={handleSaveProfile} onClose={() => setIsProfileOpen(false)} />
-        ) : (
-        <main className="dashboard-main flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-          {currentView === 'dashboard' && (
-            <DashboardFresh
-              key={dashboardInstance}
-              leads={displayedLeads}
-              campaigns={campaigns}
-              emailCadences={cadences}
-              followUpTasks={tasks}
-              onSelectLead={handleOpenLeadDetail}
-              onImportLead={handleImportLead}
-              onBatchImportLeads={handleBatchImportLeads}
-              onUpdateLeadStage={handleUpdateLeadStage}
-              onOpenNewLeadModal={() => setIsCreateLeadModalOpen(true)}
-              onLaunchDialerForLead={(lead) => handleOpenLeadDetail(lead, 'call')}
-              onCompleteTask={handleCompleteTask}
-              onCreateTask={handleCreateTask}
-              onRescheduleTask={handleRescheduleTask}
-              onDeleteTask={handleDeleteTask}
-              onToggleCampaignStatus={handleToggleCampaignStatus}
-              onCreateCampaign={handleCreateCampaign}
-              onSimulateWebhookLead={handleSimulateWebhookLead}
-              onDownloadCSV={handleDownloadAllLeads}
-              onNavigateToView={setCurrentView}
-            />
-          )}
-
-          {currentView === 'scraper' && (
-            <ScraperWorkbench
-              onImportLead={handleImportLead}
-              onBatchImportLeads={handleBatchImportLeads}
-              existingLeads={leads}
-            />
-          )}
-
-          {currentView === 'pipeline' && (
-            <PipelineKanban
-              leads={displayedLeads}
-              onSelectLead={handleOpenLeadDetail}
-              onUpdateLeadStage={handleUpdateLeadStage}
-              onOpenNewLeadModal={() => setIsCreateLeadModalOpen(true)}
-              onLaunchDialerForLead={handleLaunchDialerForLead}
-            />
-          )}
-
-          {currentView === 'automation' && (
-            <AutomationSequences
-              emailCadences={cadences}
-              followUpTasks={tasks}
-              leads={leads}
-              onCompleteTask={handleCompleteTask}
-              onCreateTask={handleCreateTask}
-              onRescheduleTask={handleRescheduleTask}
-              onDeleteTask={handleDeleteTask}
-              onSelectLeadById={handleSelectLeadById}
-              onLaunchDialerForLead={handleLaunchDialerForLead}
-            />
-          )}
-
-          {currentView === 'campaigns' && (
-            <CampaignsManager
-              campaigns={campaigns}
-              onToggleCampaignStatus={handleToggleCampaignStatus}
-              onCreateCampaign={handleCreateCampaign}
-              onSimulateWebhookLead={handleSimulateWebhookLead}
-            />
-          )}
-        </main>
-        )
-      )}
-
-      {/* Lead Detail & AI Outreach Drawer Modal */}
-      <LeadDetailModal
-        lead={selectedLead}
-        isOpen={isLeadModalOpen}
-        onClose={() => setIsLeadModalOpen(false)}
-        onUpdateLead={handleUpdateLead}
-        initialActionTab={leadModalInitialTab}
-      />
-
-      {/* Create Lead Modal */}
-      <CreateLeadModal
-        isOpen={isCreateLeadModalOpen}
-        onClose={() => setIsCreateLeadModalOpen(false)}
-        onCreateLead={handleImportLead}
-      />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#161616] text-white px-4 py-3 rounded-2xl shadow-2xl border border-blue-500/40 flex items-center gap-3 font-mono text-xs animate-in slide-in-from-bottom-5">
-          <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-          <span>{toastMessage}</span>
+    <div className="site-shell">
+      <header className="site-header" id="header-nav">
+        <div className="utility-bar">
+          <div className="page-width utility-inner">
+            <p>Custom steel fabrication for a stronger tomorrow.</p>
+            <div className="utility-details">
+              <span><MapPin aria-hidden="true" /><span>Tui Agricultural Engineers, Building 21<small>Industrial Area, Butere Road, Nairobi</small></span></span>
+              <span><Clock3 aria-hidden="true" />Mon - Fri: 8:00 - 17:00<small>Sat: 8:00 - 13:00 (By Appointment)</small></span>
+            </div>
+          </div>
         </div>
-      )}
+        <div className="navigation-bar">
+          <div className="page-width nav-inner">
+            <button className="brand" onClick={() => go('hero')} aria-label="Forgelinea Engineering home">
+              <img src={logo} alt="" />
+              <span>FORGELINEA<small>ENGINEERING</small></span>
+            </button>
+            <nav className={menuOpen ? 'nav-links is-open' : 'nav-links'} aria-label="Main navigation">
+              {navigation.map((item) => (
+                <button key={item.id} onClick={() => go(item.id)}>{item.label}</button>
+              ))}
+            </nav>
+            <a className="header-phone" href={phoneLink}><Phone aria-hidden="true" />{phoneNumber}</a>
+            <button
+              className="menu-button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {menuOpen ? <X /> : <Menu />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section id="hero" className="hero-section" style={{ backgroundImage: `url("${img03}")` }}>
+          {import.meta.env.MODE !== 'wordpress' && (
+            <video className="hero-video" autoPlay muted loop playsInline poster={img03} aria-hidden="true">
+              <source src="/videos/vid1.mp4" type="video/mp4" />
+            </video>
+          )}
+          <div className="hero-shade" />
+          <div className="page-width hero-inner">
+            <div className="hero-copy">
+              <span className="hero-rule" />
+              <h1>Precision in <em>every weld.</em></h1>
+              <p className="hero-description">
+                We deliver high-quality steel fabrication solutions for commercial, industrial and residential projects.
+                Built with precision, powered by experience.
+              </p>
+              <button className="outline-button" onClick={() => go('services')}>
+                Our services <ArrowRight aria-hidden="true" />
+              </button>
+            </div>
+            <div className="hero-caption"><span />Crafted with care. Built to endure.</div>
+          </div>
+        </section>
+
+        <section id="about" className="intro-section">
+          <div className="page-width intro-layout">
+            <div className="intro-copy">
+              <span className="section-rule" />
+              <p className="eyebrow">01 · About Forgelinea Engineering</p>
+              <h2>Built strong.<br /><em>Built to last.</em></h2>
+              <p><strong>Forgelinea Engineering Ltd.</strong> is a precision fabrication and industrial engineering company headquartered in Nairobi, Kenya. We design, fabricate, and install structural steelwork, architectural metalwork, and laser-cut components for commercial, industrial, agricultural, automotive, architectural, and government clients.</p>
+              <p>ForgeLinea brings the craft of shaping metal together with the geometry and discipline of modern engineering. Every project passes through precise specification, careful material selection, controlled fabrication, and verified quality before delivery.</p>
+            </div>
+            <div className="intro-cards">
+              <article className="intro-card">
+                <img src={img03} alt="Structural steel frame" loading="lazy" />
+                <div><h3>Structural Steel Fabrication</h3><p>We fabricate and install structural steel for warehouses, commercial buildings, industrial facilities and more — built to meet your project’s exact needs.</p><button onClick={() => go('services')}>Learn more <ArrowRight aria-hidden="true" /></button></div>
+              </article>
+              <article className="intro-card">
+                <img src={img02} alt="Custom steel staircase" loading="lazy" />
+                <div><h3>Custom Metalwork</h3><p>From gates and railings to bespoke steel products, we create custom metalwork that combines strength, functionality and modern design.</p><button onClick={() => go('services')}>Learn more <ArrowRight aria-hidden="true" /></button></div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="projects" className="projects-section">
+          <div className="page-width">
+            <div className="section-heading">
+              <div><span className="section-rule" /><p className="eyebrow">Selected capabilities</p><h2>Our work in <em>steel.</em></h2><p>Real projects. Lasting results. Here’s a look at some of our recent steel fabrication work.</p></div>
+              <button className="light-link" onClick={() => go('services')}>Explore our services <ArrowRight aria-hidden="true" /></button>
+            </div>
+            <div className="project-grid">
+              {projects.map((project) => (
+                <article className="project-card" key={project.title}>
+                  <img src={project.image} alt={project.title} loading="lazy" />
+                  <div className="project-caption"><span>{project.category}</span><h3>{project.title}</h3><ArrowUpRight aria-hidden="true" /></div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="services" className="services-section">
+          <div className="page-width">
+            <div className="section-heading services-heading">
+              <div><span className="section-rule" /><p className="eyebrow">05 · What we do</p><h2>Engineering solutions across<br />six core disciplines.</h2></div>
+              <p className="section-intro"><strong>Engineered for performance, fabricated for durability.</strong> From early design and material selection through careful fabrication and installation, our team brings every detail together.</p>
+            </div>
+            <div className="service-grid">
+              {services.map((service) => (
+                <article className="service-card" key={service.number}>
+                  <img src={service.image} alt="" loading="lazy" />
+                  <div className="service-content">
+                    <span className="service-number">{service.number}</span>
+                    <h3>{service.title}</h3>
+                    <p>{service.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="company-details-section">
+          <div className="page-width details-layout">
+            <div className="details-heading"><span className="section-rule" /><p className="eyebrow">02 · Company at a glance</p><h2>Built for accurate work<br />and accountable delivery.</h2></div>
+            <div className="glance-grid">
+              <div><b>Headquarters</b><span>Tui Agricultural Engineers, Building 21, Industrial Area, Butere Road, Nairobi</span></div>
+              <div><b>Markets</b><span>Nairobi and East Africa, with regional growth underway</span></div>
+              <div><b>Technology</b><span>CNC laser cutting, MIG/TIG welding, forming and finishing</span></div>
+              <div><b>Delivery coverage</b><span>Site installation across Kenya with regional mobilisation</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="materials-section">
+          <div className="page-width materials-layout">
+            <div><span className="section-rule" /><p className="eyebrow">07 · Materials &amp; finishes</p><h2>Engineered materials.<br />Exceptional finishes.</h2></div>
+            <div>
+              <div className="material-row"><span>Mild steel</span><span>Stainless steel</span><span>Aluminum</span><span>Galvanized steel</span><span>Corten steel</span></div>
+              <p className="section-note">Material and finish selection is guided by structural requirements, environmental exposure, durability expectations, and the desired aesthetic. Our treatments include hot-dip galvanizing, powder coating, industrial painting, polishing, brushing and specialist surface treatments.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="process-section">
+          <div className="page-width">
+            <div className="center-heading"><span className="section-rule" /><p className="eyebrow">08 · Our project delivery process</p><h2>A structured route from<br />concept to completion.</h2></div>
+            <div className="process-row"><span><b>01</b>Consult</span><span><b>02</b>Design</span><span><b>03</b>Proposal</span><span><b>04</b>Fabricate</span><span><b>05</b>Install</span></div>
+            <p className="section-note process-note">Site visits, technical consultation, CAD drawings, material selection, itemized proposals, CNC cutting, fabrication, inspection, installation and client handover are coordinated through one accountable team.</p>
+          </div>
+        </section>
+
+        <section className="industries-section">
+          <div className="page-width industries-layout">
+            <div><span className="section-rule" /><p className="eyebrow">06 · Industries we serve</p><h2>Tailored solutions for<br />demanding environments.</h2></div>
+            <div className="industry-grid"><span>Commercial &amp; real estate</span><span>Industrial &amp; manufacturing</span><span>Government infrastructure</span><span>Agriculture &amp; agribusiness</span><span>Automotive &amp; transport</span><span>Healthcare &amp; medical</span><span>Architecture &amp; interiors</span><span>Energy &amp; utilities</span></div>
+          </div>
+        </section>
+
+        <section className="quality-section">
+          <div className="page-width quality-layout">
+            <div><span className="section-rule" /><p className="eyebrow">11 · Quality &amp; HSE</p><h2>Precision.<br />Safety.<br /><em>Reliability.</em></h2></div>
+            <p>Quality is engineered into every stage, from material inspection and engineering verification to in-process checks, final inspection, and client approval. We protect people and the environment through PPE, risk assessments, equipment safety, responsible material handling, steel recycling, and continuous improvement.</p>
+          </div>
+        </section>
+
+        <section id="promise" className="promise-section">
+          <div className="page-width promise-layout">
+            <div><span className="section-rule" /><p className="eyebrow">18 · The Forgelinea promise</p><h2>Engineering every project with precision, integrity and lasting value.</h2></div>
+            <div className="promise-grid"><span>Precision engineering</span><span>Quality without compromise</span><span>Trusted partnerships</span><span>Reliable delivery</span><span>Innovation</span><span>Sustainable growth</span></div>
+          </div>
+        </section>
+
+        <section id="contact" className="contact-banner">
+          <div className="page-width contact-inner">
+            <div><span className="section-rule" /><p className="eyebrow">19 · Let’s build together</p><h2>Have a project in mind?</h2><p>Whether you have detailed drawings or are starting with a concept, our engineering team is ready to scope, quote, and deliver.<br />Let’s build something great together.</p></div>
+            <a className="outline-button" href={quoteWhatsAppLink} target="_blank" rel="noreferrer">Request a quote <ArrowRight aria-hidden="true" /></a>
+          </div>
+        </section>
+      </main>
+
+      <footer className="site-footer">
+        <div className="page-width footer-content">
+          <div className="footer-brand">
+            <button className="brand" onClick={() => go('hero')} aria-label="Forgelinea Engineering home"><img src={logo} alt="" /><span>FORGELINEA<small>ENGINEERING</small></span></button>
+            <p>Quality steel. Stronger structures.<br />A more durable future.</p>
+            <span className="footer-address">Tui Agricultural Engineers, Building 21<br />Industrial Area, Butere Road, Nairobi</span>
+          </div>
+          <div className="footer-column"><h3>Fabrication services</h3>{services.map((service) => <button key={service.number} onClick={() => go('services')}>{service.title}</button>)}<button onClick={() => go('services')}>Materials &amp; finishes</button></div>
+          <div className="footer-column"><h3>Useful links</h3><button onClick={() => go('about')}>About Us</button><button onClick={() => go('projects')}>Our Work</button><button onClick={() => go('services')}>Services</button><button onClick={() => go('promise')}>Our Promise</button><button onClick={() => go('contact')}>Contact Us</button></div>
+          <div className="footer-column footer-social"><h3>Follow us</h3><div>
+            <a href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer"><Facebook /></a>
+            <a href="https://instagram.com/forgelinea.engineering" aria-label="Instagram" target="_blank" rel="noreferrer"><Instagram /></a>
+            <a href="https://linkedin.com" aria-label="LinkedIn" target="_blank" rel="noreferrer"><Linkedin /></a>
+          </div><a className="footer-email" href="mailto:forgelineaeng@gmail.com">forgelineaeng@gmail.com</a><a className="footer-email" href={phoneLink}>{phoneNumber}</a></div>
+        </div>
+        <div className="page-width footer-bottom"><span>© {new Date().getFullYear()} Forgelinea Engineering. All rights reserved.</span><span>Stronger steel. Brighter futures.</span></div>
+      </footer>
     </div>
   );
 }
-
-export default App;
